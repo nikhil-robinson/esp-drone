@@ -403,7 +403,8 @@ static void testProps(sensorData_t *sensors)
     motorPass = 0;
     sensorsSetAccMode(ACC_MODE_PROPTEST);
     testState = measureNoiseFloor;
-    minLoadedVoltage = idleVoltage = pmGetBatteryVoltage();
+    // minLoadedVoltage = idleVoltage = pmGetBatteryVoltage();
+    minLoadedVoltage = idleVoltage = 4.2f; // TODO: use pmGetBatteryVoltage() to get the real voltage
     minSingleLoadedVoltage[MOTOR_M1] = minLoadedVoltage;
     minSingleLoadedVoltage[MOTOR_M2] = minLoadedVoltage;
     minSingleLoadedVoltage[MOTOR_M3] = minLoadedVoltage;
@@ -434,10 +435,10 @@ static void testProps(sensorData_t *sensors)
       accX[i] = sensors->acc.x;
       accY[i] = sensors->acc.y;
       accZ[i] = sensors->acc.z;
-      if (pmGetBatteryVoltage() < minSingleLoadedVoltage[motorToTest])
-      {
-        minSingleLoadedVoltage[motorToTest] = pmGetBatteryVoltage();
-      }
+      // if (pmGetBatteryVoltage() < minSingleLoadedVoltage[motorToTest]) TODO: use pmGetBatteryVoltage() to get the real voltage
+      // {
+      //   minSingleLoadedVoltage[motorToTest] = pmGetBatteryVoltage();
+      // }
     }
     i++;
 
@@ -475,7 +476,7 @@ static void testProps(sensorData_t *sensors)
   {
     if (i == 0)
     {
-      minLoadedVoltage = idleVoltage = pmGetBatteryVoltage();
+      // minLoadedVoltage = idleVoltage = pmGetBatteryVoltage(); TODO : use pmGetBatteryVoltage() to get the real voltage
     }
     if (i == 1)
     {
@@ -486,8 +487,8 @@ static void testProps(sensorData_t *sensors)
     }
     else if (i < 50)
     {
-      if (pmGetBatteryVoltage() < minLoadedVoltage)
-        minLoadedVoltage = pmGetBatteryVoltage();
+      // if (pmGetBatteryVoltage() < minLoadedVoltage)
+      //   minLoadedVoltage = pmGetBatteryVoltage();
     }
     else if (i == 50)
     {

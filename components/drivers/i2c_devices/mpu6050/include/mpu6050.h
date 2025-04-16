@@ -422,6 +422,9 @@ THE SOFTWARE.
 #define MPU6050_ST_ACCEL_LOW     0.300  // G
 #define MPU6050_ST_ACCEL_HIGH    0.950  // G
 
+
+#if 0
+
 // note: DMP code memory blocks defined at end of header file
 
 void mpu6050Init(I2C_Dev *i2cPort);
@@ -1003,6 +1006,8 @@ const prog_uchar dmpConfig[MPU6050_DMP_CONFIG_SIZE] PROGMEM = {
     0x07,   0x6C,   0x04,   0xF1, 0x28, 0x30, 0x38,   // CFG_12 inv_send_accel -> inv_construct3_fifo
     0x02,   0x16,   0x02,   0x00, 0x0A                // D_0_22 inv_set_fifo_rate
 };
+
+#endif
 
 #endif
 

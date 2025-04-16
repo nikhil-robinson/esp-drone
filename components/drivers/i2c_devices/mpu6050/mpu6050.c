@@ -43,6 +43,9 @@ static I2C_Dev *I2Cx;
 static uint8_t buffer[14];
 static bool isInit;
 
+
+#if 0
+
 /** Default constructor, uses default I2C address.
  * @see MPU6050_DEFAULT_ADDRESS
  */
@@ -3709,3 +3712,5 @@ void mpu6050SetDMPConfig2(uint8_t config)
 {
     i2cdevWriteByte(I2Cx, devAddr, MPU6050_RA_DMP_CFG_2, config);
 }
+
+#endif

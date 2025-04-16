@@ -139,7 +139,7 @@ void systemInit(void)
   workerInit();
   adcInit();
   ledseqInit();
-  pmInit();
+  // pmInit(); TODO use ina2192
   buzzerInit();
 //  peerLocalizationInit();
 
@@ -155,7 +155,7 @@ bool systemTest()
   bool pass=isInit;
 
   pass &= ledseqTest();
-  pass &= pmTest();
+  // pass &= pmTest();
   DEBUG_PRINTI("pmTest = %d", pass);
   pass &= workerTest();
   DEBUG_PRINTI("workerTest = %d", pass);

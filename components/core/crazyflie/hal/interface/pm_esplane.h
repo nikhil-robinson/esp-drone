@@ -104,6 +104,8 @@ typedef enum
   USBWallAdapter,
 } PMUSBPower;
 
+
+#if 0
 void pmInit(void);
 
 bool pmTest(void);
@@ -178,4 +180,7 @@ void pmEnableExtBatteryCurrMeasuring(uint8_t pin, float ampPerVolt);
  */
 float pmMeasureExtBatteryCurrent(void);
 
+#endif
+
 #endif /* PM_H_ */
+

@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "spi_bus.h"
 #include "common.h"
 //#include "bmi2_defs.h"
 
@@ -177,14 +177,8 @@ spi_device_interface_config_t devcfg = {
 
 esp_err_t spi_init(void)
 {
-
-
-    //Initialize the SPI bus
-    esp_err_t ret = spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO);
-    if(ret != ESP_OK) return ret;
-
-    ret = spi_bus_add_device(SPI2_HOST, &devcfg, &spidev);
-    return ret;
+    spi_bus_begin();
+    return spi_bus_device_add(devcfg,&spidev);
 }
 
 
@@ -193,10 +187,11 @@ esp_err_t spi_init(void)
  */
 BMI2_INTF_RETURN_TYPE bmi2_spi_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *intf_ptr)
 {
+
     // 読み込み
     spi_transaction_t trans;
     esp_err_t ret=0;
-
+    
     memset(&trans, 0, sizeof(trans)); // 構造体をゼロで初期化
     
     _I2CBuffer[0]=reg_addr|0x80;
@@ -206,7 +201,9 @@ BMI2_INTF_RETURN_TYPE bmi2_spi_read(uint8_t reg_addr, uint8_t *reg_data, uint32_
     trans.tx_buffer =_I2CBuffer;
     trans.rx_buffer =reg_data;
     trans.length = 8+len*8;
+    spiBeginTransaction(0);
     ret=spi_device_polling_transmit(spidev, &trans);
+    spiEndTransaction();
     uint16_t index = 0;
     while(index<len)
     {
@@ -242,7 +239,9 @@ BMI2_INTF_RETURN_TYPE bmi2_spi_write(uint8_t reg_addr, const uint8_t *reg_data, 
     trans.rxlength = 0;
 
     //書き込み
+    spiBeginTransaction(0);
     ret = spi_device_polling_transmit(spidev, &trans);
+    spiEndTransaction();
     assert(ret==ESP_OK);
     
     //spi_device_release_bus(spidev);

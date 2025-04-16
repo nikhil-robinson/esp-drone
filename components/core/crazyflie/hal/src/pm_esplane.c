@@ -25,6 +25,8 @@
  * pm.c - Power Management driver and functions.
  */
 
+ #if 0
+
 #include <string.h>
 #include <stdbool.h>
 
@@ -437,3 +439,6 @@ LOG_ADD(LOG_UINT8, batteryLevel, &batteryLevel)
 LOG_ADD(LOG_FLOAT, temp, &temp)
 #endif
 LOG_GROUP_STOP(pm)
+
+
+#endif

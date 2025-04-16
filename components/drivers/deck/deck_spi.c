@@ -29,6 +29,7 @@
 #include "nvicconf.h"
 #define DEBUG_MODULE "DECK_SPI"
 #include "debug_cf.h"
+#include "spi_bus.h"
 
 #ifdef CONFIG_EXT_FLOW_TESTBOARD //This board use wrong pin definition,only for test.
     #define SPI_SCK_PIN CONFIG_SPI_PIN_MOSI
@@ -42,7 +43,7 @@
 #define DUMMY_BYTE 0xA5
 
 static bool isInit = false;
-static SemaphoreHandle_t spiMutex;
+
 
 static void spiConfigureWithSpeed(uint32_t baudRatePrescaler);
 
@@ -55,17 +56,8 @@ void spiBegin(void)
         return;
     }
 
-    spiMutex = xSemaphoreCreateMutex();
-
     esp_err_t ret;
-    spi_bus_config_t buscfg = {
-        .miso_io_num = SPI_MISO_PIN,
-        .mosi_io_num = SPI_MOSI_PIN,
-        .sclk_io_num = SPI_SCK_PIN,
-        .quadwp_io_num = -1,
-        .quadhd_io_num = -1,
-        .max_transfer_sz = 0
-    }; //Defaults to 4094 if 0
+    spi_bus_begin();
     spi_device_interface_config_t devcfg = {
         .clock_speed_hz = SPI_BAUDRATE_2MHZ, //Clock out at 10 MHz
         .mode = 3,							 //SPI mode 0
@@ -75,18 +67,10 @@ void spiBegin(void)
     };
     //Initialize the SPI bus
     spi_host_device_t host_id = SPI2_HOST;
-#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 3, 0))
-    ret = spi_bus_initialize(host_id, &buscfg, SPI_DMA_CH_AUTO);
-#else
-    int dma_chan = host_id; //set dma channel equals to host_id by default
-    ret = spi_bus_initialize(host_id, &buscfg, dma_chan);
-#endif
-    ESP_ERROR_CHECK(ret);
-    //Attach the pmw3901 to the SPI bus
-    ret = spi_bus_add_device(host_id, &devcfg, &spi);
+
+    ret = spi_bus_device_add(devcfg,&spi);
     ESP_ERROR_CHECK(ret);
 
-    isInit = true;
 }
 
 static void spiConfigureWithSpeed(uint32_t baudRatePrescaler)
@@ -136,15 +120,4 @@ bool spiExchange(size_t length, bool is_tx, const uint8_t *data_tx, uint8_t *dat
     }
 
     return true;
-}
-
-void spiBeginTransaction(uint32_t baudRatePrescaler)
-{
-    xSemaphoreTake(spiMutex, portMAX_DELAY);
-    spiConfigureWithSpeed(baudRatePrescaler);
-}
-
-void spiEndTransaction()
-{
-    xSemaphoreGive(spiMutex);
 }

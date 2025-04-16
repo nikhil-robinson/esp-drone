@@ -34,6 +34,7 @@
 #include "stm32_legacy.h"
 #define DEBUG_MODULE "PMW"
 #include "debug_cf.h"
+#include "common.h"
 
 static bool isInit = false;
 
@@ -41,47 +42,14 @@ static void registerWrite(uint32_t csPin, uint8_t reg, uint8_t value)
 {
     // Set MSB to 1 for write
     reg |= 0x80u;
-
-    spiBeginTransaction(SPI_BAUDRATE_2MHZ);
-    digitalWrite(csPin, LOW);
-
-    sleepus(50);
-
-    spiExchange(1, 1, &reg, &reg);
-    sleepus(50);
-    spiExchange(1, 1, &value, &value);
-
-    sleepus(50);
-
-    digitalWrite(csPin, HIGH);
-    spiEndTransaction();
-    sleepus(200);
+    pmw_spi_reg_write(reg,value);
 }
 
 static uint8_t registerRead(uint32_t csPin, uint8_t reg)
 {
-    uint8_t data = 0;
-    uint8_t dummy = 0;
+    uint8_t reg_data = pmw_spi_reg_read(reg);
 
-    // Set MSB to 0 for read
-    reg &= ~0x80u;
-
-    spiBeginTransaction(SPI_BAUDRATE_2MHZ);
-    digitalWrite(csPin, LOW);
-
-    sleepus(50);
-
-    spiExchange(1, 1, &reg, &reg);
-    sleepus(500);
-    spiExchange(1, 0, &dummy, &data);
-
-    sleepus(50);
-
-    digitalWrite(csPin, HIGH);
-    spiEndTransaction();
-    sleepus(200);
-
-    return data;
+    return reg_data;
 }
 
 static void InitRegisters(uint32_t csPin)
@@ -175,18 +143,8 @@ bool pmw3901Init(uint32_t csPin)
     }
 
     // Initialize CS Pin
-    pinMode(csPin, OUTPUT);
-    digitalWrite(csPin, HIGH);
-
-    spiBegin();
-    vTaskDelay(M2T(40));
-
-    digitalWrite(csPin, HIGH);
-    vTaskDelay(M2T(2));
-    digitalWrite(csPin, LOW);
-    vTaskDelay(M2T(2));
-    digitalWrite(csPin, HIGH);
-    vTaskDelay(M2T(2));
+    registerWrite(csPin,0x3A, 0x5A);
+    vTaskDelay(M2T(5));
 
     uint8_t chipId    = registerRead(csPin, 0x00);
     uint8_t invChipId = registerRead(csPin, 0x5f);
@@ -219,13 +177,13 @@ void pmw3901ReadMotion(uint32_t csPin, motionBurst_t *motion)
     uint8_t address = 0x16;
 
     spiBeginTransaction(SPI_BAUDRATE_2MHZ);
-    digitalWrite(csPin, LOW);
-    sleepus(50);
+    // digitalWrite(csPin, LOW);
+    // sleepus(50);
     spiExchange(1, 1, &address, &address);
     sleepus(50);
     spiExchange(sizeof(motionBurst_t), 0, (uint8_t *)motion, (uint8_t *)motion);
     sleepus(50);
-    digitalWrite(csPin, HIGH);
+    // digitalWrite(csPin, HIGH);
     spiEndTransaction();
     sleepus(50);
 

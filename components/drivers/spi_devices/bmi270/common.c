@@ -8,8 +8,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "spi_bus.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "common.h"
+#include "sleepus.h"
 //#include "bmi2_defs.h"
 
 //#include "driver/i2c.h"
@@ -43,6 +45,8 @@ i2c_cmd_handle_t i2chandle;
 
 // SPIデバイスハンドラーを使って通信する
 spi_device_handle_t spidev;
+
+spi_device_handle_t pwm_spidev;
 
 
 
@@ -174,11 +178,110 @@ spi_device_interface_config_t devcfg = {
     .post_cb = NULL,// transactionが完了した後に呼ばれる関数をセットできる
 };
 
+spi_device_interface_config_t pmw_devcfg = {
+    .command_bits = 0,
+    .address_bits = 0,
+    .dummy_bits = 0,
+    .mode = 3,
+    .duty_cycle_pos = 128,  // default 128 = 50%/50% duty
+    .cs_ena_pretrans = 0, // 0 not used
+    .cs_ena_posttrans = 0,  // 0 not used
+    .clock_speed_hz = SPI_MASTER_FREQ_8M/2,// 8,9,10,11,13,16,20,26,40,80
+    .spics_io_num = 12,
+    .flags = 0,  // 0 not used
+    .queue_size = 10,// transactionのキュー数。1以上の値を入れておく。
+    .pre_cb = NULL,// transactionが始まる前に呼ばれる関数をセットできる
+    .post_cb = NULL,// transactionが完了した後に呼ばれる関数をセットできる
+};
+
+static SemaphoreHandle_t spiMutex;
 
 esp_err_t spi_init(void)
 {
-    spi_bus_begin();
-    return spi_bus_device_add(devcfg,&spidev);
+    spiMutex = xSemaphoreCreateMutex();
+    //Initialize the SPI bus
+    esp_err_t ret = spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO);
+    if(ret != ESP_OK) return ret;
+
+    ret = spi_bus_add_device(SPI2_HOST, &devcfg, &spidev);
+    ret = spi_bus_add_device(SPI2_HOST, &pmw_devcfg, &pwm_spidev);
+    return ret;
+}
+
+uint8_t pmw_spi_reg_read(uint8_t reg_addr)
+{  
+    reg_addr &= ~0x80u;
+    
+    uint8_t tx_data[2] = {reg_addr, 0};
+    uint8_t rx_data[2] = {0};
+    
+    spi_transaction_t trans = {};
+    trans.flags = 0;
+    trans.cmd = 0;
+    trans.addr = 0;
+    trans.length = 16; // 2 bytes (8 bits each)
+    trans.tx_buffer = tx_data;
+    trans.rx_buffer = rx_data;
+    spi_device_polling_transmit(pwm_spidev, &trans);
+    return rx_data[1]; // The second byte is the register value
+}
+
+bool spiExchange(size_t length, bool is_tx, const uint8_t *data_tx, uint8_t *data_rx)
+{
+
+    if (length == 0) {
+        return true;    //no need to send anything
+    }
+
+    esp_err_t ret;
+
+    if (is_tx == true) {
+
+        static spi_transaction_t t;
+        memset(&t, 0, sizeof(t));					//Zero out the transaction
+        t.length = length * 8;						//Len is in bytes, transaction length is in bits.
+        t.tx_buffer = data_tx;						//Data
+        ret = spi_device_polling_transmit(pwm_spidev, &t); //Transmit!
+        assert(ret == ESP_OK);						//Should have had no issues.
+        //DEBUG_PRINTD("spi send = %d",t.length);
+        return true;
+    }
+
+    static spi_transaction_t r;
+    memset(&r, 0, sizeof(r));
+    r.length = length * 8;
+    r.flags = SPI_TRANS_USE_RXDATA;
+    ret = spi_device_polling_transmit(pwm_spidev, &r);
+    assert(ret == ESP_OK);
+
+    if (r.rxlength > 0) {
+        //DEBUG_PRINTD("rxlength = %d",r.rxlength);
+        memcpy(data_rx, r.rx_data, length);
+    }
+
+    return true;
+}
+
+esp_err_t pmw_spi_reg_write(uint8_t reg, uint8_t value)
+{  esp_err_t ret=0;
+    reg |= 0x80u;
+    
+    spi_transaction_t trans = {};
+    trans.flags = 0;
+    trans.cmd = 0;
+    trans.addr = 0;
+    trans.length = 16; // 2 bytes (8 bits each)
+    trans.tx_buffer = NULL;
+    uint8_t data[2] = {reg, value};
+    trans.tx_buffer = data;
+
+    //書き込み
+    ret = spi_device_polling_transmit(pwm_spidev, &trans);
+    assert(ret==ESP_OK);
+    
+    //spi_device_release_bus(spidev);
+
+    return ret;
 }
 
 
@@ -187,11 +290,10 @@ esp_err_t spi_init(void)
  */
 BMI2_INTF_RETURN_TYPE bmi2_spi_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *intf_ptr)
 {
-
     // 読み込み
     spi_transaction_t trans;
     esp_err_t ret=0;
-    
+
     memset(&trans, 0, sizeof(trans)); // 構造体をゼロで初期化
     
     _I2CBuffer[0]=reg_addr|0x80;
@@ -201,9 +303,7 @@ BMI2_INTF_RETURN_TYPE bmi2_spi_read(uint8_t reg_addr, uint8_t *reg_data, uint32_
     trans.tx_buffer =_I2CBuffer;
     trans.rx_buffer =reg_data;
     trans.length = 8+len*8;
-    spiBeginTransaction(0);
     ret=spi_device_polling_transmit(spidev, &trans);
-    spiEndTransaction();
     uint16_t index = 0;
     while(index<len)
     {
@@ -212,6 +312,18 @@ BMI2_INTF_RETURN_TYPE bmi2_spi_read(uint8_t reg_addr, uint8_t *reg_data, uint32_
     }
     assert(ret==ESP_OK);
     return ret;
+}
+
+
+void spiBeginTransaction(uint32_t baudRatePrescaler)
+{
+    xSemaphoreTake(spiMutex, portMAX_DELAY);
+    // spiConfigureWithSpeed(baudRatePrescaler);
+}
+
+void spiEndTransaction()
+{
+    xSemaphoreGive(spiMutex);
 }
 
 /*!
@@ -239,9 +351,7 @@ BMI2_INTF_RETURN_TYPE bmi2_spi_write(uint8_t reg_addr, const uint8_t *reg_data, 
     trans.rxlength = 0;
 
     //書き込み
-    spiBeginTransaction(0);
     ret = spi_device_polling_transmit(spidev, &trans);
-    spiEndTransaction();
     assert(ret==ESP_OK);
     
     //spi_device_release_bus(spidev);
@@ -255,8 +365,7 @@ BMI2_INTF_RETURN_TYPE bmi2_spi_write(uint8_t reg_addr, const uint8_t *reg_data, 
 void bmi2_delay_us(uint32_t period, void *intf_ptr)
 {
     //coines_delay_usec(period);
-    // ets_delay_us(period);
-    esp_rom_delay_us(period);
+    sleepus(period);
 }
 
 /*!

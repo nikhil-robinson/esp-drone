@@ -83,6 +83,7 @@ bool spiTest(void)
     return isInit;
 }
 
+#if 0
 bool spiExchange(size_t length, bool is_tx, const uint8_t *data_tx, uint8_t *data_rx)
 {
     if (isInit != true) {
@@ -121,3 +122,5 @@ bool spiExchange(size_t length, bool is_tx, const uint8_t *data_tx, uint8_t *dat
 
     return true;
 }
+
+#endif

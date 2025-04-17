@@ -75,6 +75,25 @@ float imu_get_acc_x(void) {
     return lsb_to_mps2(imu_data.acc.x, 8.0, 16) / GRAVITY_EARTH;
 }
 
+uint16_t imu_get_acc_x_raw(void) {
+    return imu_data.acc.x;
+}
+uint16_t imu_get_acc_y_raw(void) {
+    return imu_data.acc.y;
+}
+uint16_t imu_get_acc_z_raw(void) {
+    return imu_data.acc.z;
+}
+uint16_t imu_get_gyro_x_raw(void) {
+    return imu_data.gyr.x;
+}
+uint16_t imu_get_gyro_y_raw(void) {
+    return imu_data.gyr.y;
+}
+uint16_t imu_get_gyro_z_raw(void) {
+    return imu_data.gyr.z;
+}
+
 float imu_get_acc_y(void) {
     return lsb_to_mps2(imu_data.acc.y, 8.0, 16) / GRAVITY_EARTH;
 }

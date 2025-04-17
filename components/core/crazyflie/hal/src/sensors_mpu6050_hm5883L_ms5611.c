@@ -807,53 +807,60 @@ bool sensorsMpu6050Hmc5883lMs5611ManufacturingTest(void)
     float pitch, roll;
     uint32_t startTick = xTaskGetTickCount();
 
-    // testStatus = mpu6050SelfTest();
+    testStatus = true;
 
-    // if (testStatus)
-    // {
-    //     sensorsBiasObjInit(&gyroBiasRunning);
+    if (testStatus)
+    {
+        sensorsBiasObjInit(&gyroBiasRunning);
 
-    //     while (xTaskGetTickCount() - startTick < SENSORS_VARIANCE_MAN_TEST_TIMEOUT)
-    //     {
-    //         mpu6050GetMotion6(&a.y, &a.x, &a.z, &g.y, &g.x, &g.z);
+        while (xTaskGetTickCount() - startTick < SENSORS_VARIANCE_MAN_TEST_TIMEOUT)
+        {
+            // mpu6050GetMotion6(&a.y, &a.x, &a.z, &g.y, &g.x, &g.z);
+            imu_update();
+            a.x = imu_get_acc_x_raw();
+            a.y = imu_get_acc_y_raw();
+            a.z = imu_get_acc_z_raw();
+            g.x = imu_get_gyro_x_raw();
+            g.y = imu_get_gyro_y_raw();
+            g.z = imu_get_gyro_z_raw();
+            if (processGyroBias(g.x, g.y, g.z, &gyroBias))
+            {
+                gyroBiasFound = true;
+                DEBUG_PRINTI("Gyro variance test [OK]\n");
+                break;
+            }
+            DEBUG_PRINTI("Gyro variance test [FAIL]\n");
+        }
 
-    //         if (processGyroBias(g.x, g.y, g.z, &gyroBias))
-    //         {
-    //             gyroBiasFound = true;
-    //             DEBUG_PRINTI("Gyro variance test [OK]\n");
-    //             break;
-    //         }
-    //     }
+        if (gyroBiasFound)
+        {
+            acc.x = imu_get_acc_x();
+            acc.y = imu_get_acc_y();
+            acc.z = imu_get_acc_z();
 
-    //     if (gyroBiasFound)
-    //     {
-    //         acc.x = (a.x) * SENSORS_G_PER_LSB_CFG;
-    //         acc.y = (a.y) * SENSORS_G_PER_LSB_CFG;
-    //         acc.z = (a.z) * SENSORS_G_PER_LSB_CFG;
+            // Calculate pitch and roll based on accelerometer. Board must be level
+            pitch = tanf(-acc.x / (sqrtf(acc.y * acc.y + acc.z * acc.z))) * 180 / (float)M_PI;
+            roll = tanf(acc.y / acc.z) * 180 / (float)M_PI;
 
-    //         // Calculate pitch and roll based on accelerometer. Board must be level
-    //         pitch = tanf(-acc.x / (sqrtf(acc.y * acc.y + acc.z * acc.z))) * 180 / (float)M_PI;
-    //         roll = tanf(acc.y / acc.z) * 180 / (float)M_PI;
+            if ((fabsf(roll) < SENSORS_MAN_TEST_LEVEL_MAX) && (fabsf(pitch) < SENSORS_MAN_TEST_LEVEL_MAX))
+            {
+                DEBUG_PRINTI("Acc level test [OK]\n");
+                testStatus = true;
+            }
+            else
+            {
+                DEBUG_PRINTE("Acc level test Roll:%0.2f, Pitch:%0.2f [FAIL]\n", (double)roll, (double)pitch);
+                testStatus = false;
+            }
+        }
+        else
+        {
+            DEBUG_PRINTE("Gyro variance test [FAIL]\n");
+            testStatus = false;
+        }
+    }
 
-    //         if ((fabsf(roll) < SENSORS_MAN_TEST_LEVEL_MAX) && (fabsf(pitch) < SENSORS_MAN_TEST_LEVEL_MAX))
-    //         {
-    //             DEBUG_PRINTI("Acc level test [OK]\n");
-    //             testStatus = true;
-    //         }
-    //         else
-    //         {
-    //             DEBUG_PRINTE("Acc level test Roll:%0.2f, Pitch:%0.2f [FAIL]\n", (double)roll, (double)pitch);
-    //             testStatus = false;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         DEBUG_PRINTE("Gyro variance test [FAIL]\n");
-    //         testStatus = false;
-    //     }
-    // }
-
-    return true;
+    return testStatus;
 }
 
 /**

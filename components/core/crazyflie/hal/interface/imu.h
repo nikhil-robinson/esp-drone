@@ -72,7 +72,12 @@ float imu_get_acc_z(void);
 float imu_get_gyro_x(void);
 float imu_get_gyro_y(void);
 float imu_get_gyro_z(void);
-
+uint16_t imu_get_acc_x_raw(void);
+uint16_t imu_get_acc_y_raw(void);
+uint16_t imu_get_acc_z_raw(void);
+uint16_t imu_get_gyro_x_raw(void);
+uint16_t imu_get_gyro_y_raw(void);
+uint16_t imu_get_gyro_z_raw(void);
 
 
 #endif /* IMU_H_ */

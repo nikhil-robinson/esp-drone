@@ -65,17 +65,17 @@ I2cDrv sensorsBus = {
     .def                = &sensorBusDef,
 };
 
-static const I2cDef deckBusDef = {
-    .i2cPort            = I2C_NUM_1,
-    .i2cClockSpeed      = I2C_DEFAULT_DECK_CLOCK_SPEED,
-    .gpioSCLPin         = CONFIG_I2C1_PIN_SCL,
-    .gpioSDAPin         = CONFIG_I2C1_PIN_SDA,
-    .gpioPullup         = GPIO_PULLUP_ENABLE,
-};
+// static const I2cDef deckBusDef = {
+//     .i2cPort            = I2C_NUM_1,
+//     .i2cClockSpeed      = I2C_DEFAULT_DECK_CLOCK_SPEED,
+//     .gpioSCLPin         = CONFIG_I2C1_PIN_SCL,
+//     .gpioSDAPin         = CONFIG_I2C1_PIN_SDA,
+//     .gpioPullup         = GPIO_PULLUP_ENABLE,
+// };
 
-I2cDrv deckBus = {
-    .def                = &deckBusDef,
-};
+// I2cDrv deckBus = {
+//     .def                = &deckBusDef,
+// };
 
 static void i2cdrvInitBus(I2cDrv *i2c)
 {

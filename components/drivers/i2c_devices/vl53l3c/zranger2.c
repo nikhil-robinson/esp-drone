@@ -8,7 +8,6 @@
 #include "range.h"
 #include "i2cdev.h"
 #include "zranger2.h"
-#include "vl53l1x.h"
 #include "cf_math.h"
 #define DEBUG_MODULE "ZR2"
 #include "debug_cf.h"
@@ -27,14 +26,14 @@ static int16_t range_last = 0;
 
 static bool isInit;
 
-static VL53L1_Dev_t dev;
+static VL53LX_Dev_t dev;
 
-static uint16_t zRanger2GetMeasurementAndRestart(VL53L1_Dev_t *dev)
+static uint16_t zRanger2GetMeasurementAndRestart(VL53LX_Dev_t *dev)
 {
-  VL53L1_Error status = VL53L1_ERROR_NONE;
-  VL53L1_RangingMeasurementData_t rangingData;
-  uint8_t dataReady = 0;
-  uint16_t range;
+  // VL53L1_Error status = VL53L1_ERROR_NONE;
+  // VL53L1_RangingMeasurementData_t rangingData;
+  // uint8_t dataReady = 0;
+  // uint16_t range;
 
   // while (dataReady == 0)
   // {
@@ -83,12 +82,12 @@ void zRanger2Task(void *arg)
 
   systemWaitStart();
 
-  // Restart sensor
-  VL53L1_StopMeasurement(&dev);
-  VL53L1_SetDistanceMode(&dev, VL53L1_DISTANCEMODE_MEDIUM);
-  VL53L1_SetMeasurementTimingBudgetMicroSeconds(&dev, 25000);
+  // // Restart sensor
+  // VL53L1_StopMeasurement(&dev);
+  // VL53L1_SetDistanceMode(&dev, VL53L1_DISTANCEMODE_MEDIUM);
+  // VL53L1_SetMeasurementTimingBudgetMicroSeconds(&dev, 25000);
 
-  VL53L1_StartMeasurement(&dev);
+  // VL53L1_StartMeasurement(&dev);
 
   lastWakeTime = xTaskGetTickCount();
 

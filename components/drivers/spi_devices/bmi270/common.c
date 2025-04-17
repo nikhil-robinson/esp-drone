@@ -41,7 +41,7 @@ static struct coines_intf_config intf_conf;
 struct bmi2_dev Bmi270;
 struct bmi2_dev *pBmi270=&Bmi270;
 
-i2c_cmd_handle_t i2chandle;
+static i2c_cmd_handle_t i2chandle;
 
 // SPIデバイスハンドラーを使って通信する
 spi_device_handle_t spidev;
@@ -54,7 +54,7 @@ i2c_port_t i2c_port=1;
 
 uint8_t Bmi270_address = 0x69; 
 
-uint8_t _I2CBuffer[256];
+static uint8_t _I2CBuffer[256];
 
 struct bmi2_sens_config config;
 

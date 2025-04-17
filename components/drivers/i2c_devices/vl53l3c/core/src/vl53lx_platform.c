@@ -50,6 +50,7 @@ unsigned char SPI2C_Buffer[256];
 
 //#include "esp_log.h"
 #include "driver/i2c.h"
+#include "i2cdev.h"
 
 #define I2C_TIME_OUT_BASE   10
 #define I2C_TIME_OUT_BYTE   1
@@ -60,7 +61,7 @@ unsigned char SPI2C_Buffer[256];
 #endif
 
 
-i2c_cmd_handle_t i2chandle;
+static i2c_cmd_handle_t i2chandle;
 
 //#ifndef HAL_I2C_MODULE_ENABLED
 //#warning "HAL I2C module must be enable "
@@ -70,7 +71,7 @@ i2c_cmd_handle_t i2chandle;
 
 
 
-uint8_t _I2CBuffer[256];
+static uint8_t _I2CBuffer[256];
 
 
 #define I2C_MASTER_SDA_IO 3
@@ -101,7 +102,7 @@ i2c_config_t conf = {
 //#endif
 void VL53LX_GetI2cBus(void)
 {
-    i2chandle = i2c_cmd_link_create();
+    // i2chandle = i2c_cmd_link_create();
 }
 
 //#ifndef VL53LX_PutI2cBus
@@ -112,16 +113,16 @@ void VL53LX_GetI2cBus(void)
 
 void VL53LX_PutI2cBus(void)
 {
-    i2c_master_stop(i2chandle);
-    i2c_master_cmd_begin(i2c_master_port,i2chandle, 1 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(i2chandle);
+    // i2c_master_stop(i2chandle);
+    // i2c_master_cmd_begin(i2c_master_port,i2chandle, 1 / portTICK_RATE_MS);
+    // i2c_cmd_link_delete(i2chandle);
 }
 
 int vl53lx_i2c_init(void)
 {
     int status=0;
     //i2c_driver_delete(i2c_master_port);
-    ets_delay_us(100000);
+    esp_rom_delay_us(100000);
     //delay(100);
     //status = i2c_param_config(i2c_master_port, &conf);
     //status = status|i2c_driver_install(i2c_master_port, conf.mode, 0, 0, 0);
@@ -130,23 +131,36 @@ int vl53lx_i2c_init(void)
 
 int _I2CWrite(VL53LX_DEV Dev, uint8_t *pdata, uint32_t count) {
     int status;
-    
-    i2c_master_start(i2chandle);
-    status = i2c_master_write_byte(i2chandle, (Dev->i2c_slave_address<<1)|I2C_MASTER_WRITE, I2C_MASTER_ACK);
-    status = i2c_master_write(i2chandle, pdata, count, I2C_MASTER_ACK);
+    I2C_Dev * i2c_dev = (I2C_Dev *)I2C0_DEV;
+    if (xSemaphoreTake(i2c_dev->isBusFreeMutex, (TickType_t)5) == pdFALSE) {
+        return ESP_FAIL;
+    }
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    status = i2c_master_write_byte(cmd, (Dev->i2c_slave_address<<1)|I2C_MASTER_WRITE, I2C_MASTER_ACK);
+    status = i2c_master_write(cmd, pdata, count, I2C_MASTER_ACK);
+    i2c_master_stop(cmd);
+    esp_err_t err = i2c_master_cmd_begin(i2c_dev->def->i2cPort, cmd, (TickType_t)5);
+    i2c_cmd_link_delete(cmd);
+    xSemaphoreGive(i2c_dev->isBusFreeMutex);
     return status;
 }
 
 int _I2CRead(VL53LX_DEV Dev, uint8_t *pdata, uint32_t count) {
     int status;
-
-    i2c_master_start(i2chandle);
-    status = i2c_master_write_byte(i2chandle, (Dev->i2c_slave_address<<1)|I2C_MASTER_READ, I2C_MASTER_ACK);
-    if (count>1)
-    {
-        status = i2c_master_read(i2chandle, pdata, count-1, I2C_MASTER_ACK);
+    I2C_Dev * i2c_dev = (I2C_Dev *)I2C0_DEV;
+    if (xSemaphoreTake(i2c_dev->isBusFreeMutex, (TickType_t)5) == pdFALSE) {
+        return ESP_FAIL;
     }
-    status = i2c_master_read_byte(i2chandle, pdata+count-1, I2C_MASTER_NACK);
+
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    status = i2c_master_write_byte(cmd, (Dev->i2c_slave_address<<1)|I2C_MASTER_READ, I2C_MASTER_ACK);
+    status = i2c_master_read_byte(cmd, pdata+count-1, I2C_MASTER_NACK);
+    i2c_master_stop(cmd);
+    esp_err_t err = i2c_master_cmd_begin(i2c_dev->def->i2cPort, cmd, (TickType_t)5);
+    i2c_cmd_link_delete(cmd);
+    xSemaphoreGive(i2c_dev->isBusFreeMutex);
     return status;
 }
 
@@ -392,14 +406,14 @@ VL53LX_Error VL53LX_GetTimerFrequency(int32_t *ptimer_freq_hz)
 
 VL53LX_Error VL53LX_WaitMs(VL53LX_Dev_t *pdev, int32_t wait_ms){
 	(void)pdev;
-    ets_delay_us(wait_ms*1000);
+    esp_rom_delay_us(wait_ms*1000);
 	//delay(wait_ms);
     return VL53LX_ERROR_NONE;
 }
 
 VL53LX_Error VL53LX_WaitUs(VL53LX_Dev_t *pdev, int32_t wait_us){
 	(void)pdev;
-    ets_delay_us(wait_us);   
+    esp_rom_delay_us(wait_us);   
 	//delay(wait_us/1000);
     return VL53LX_ERROR_NONE;
 }

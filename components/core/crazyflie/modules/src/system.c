@@ -134,7 +134,7 @@ void systemInit(void)
               *((int*)(MCU_ID_ADDRESS+8)), *((int*)(MCU_ID_ADDRESS+4)),
               *((int*)(MCU_ID_ADDRESS+0)), *((short*)(MCU_FLASH_SIZE_ADDRESS)));*/
 
-  configblockInit();
+  // configblockInit();
   //storageInit();
   workerInit();
   adcInit();
@@ -211,8 +211,8 @@ void systemTask(void *arg)
   DEBUG_PRINTI("wifilinkTest = %d ", pass);
   pass &= systemTest();
   DEBUG_PRINTI("systemTest = %d ", pass);
-  pass &= configblockTest();
-  DEBUG_PRINTI("configblockTest = %d ", pass);
+  // pass &= configblockTest();
+  // DEBUG_PRINTI("configblockTest = %d ", pass);
   //pass &= storageTest();
   pass &= commTest();
   DEBUG_PRINTI("commTest = %d ", pass);

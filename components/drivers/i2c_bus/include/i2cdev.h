@@ -32,7 +32,7 @@
 #define I2CDEV_NO_MEM_ADDR  0xFF
 
 typedef I2cDrv    I2C_Dev;
-#define I2C1_DEV  &deckBus
+// #define I2C1_DEV  &deckBus
 #define I2C0_DEV  &sensorsBus
 
 // For compatibility
@@ -202,5 +202,7 @@ bool i2cdevWriteBit(I2C_Dev *dev, uint8_t devAddress, uint8_t memAddress,
  */
 bool i2cdevWriteBits(I2C_Dev *dev, uint8_t devAddress, uint8_t memAddress,
                      uint8_t bitStart, uint8_t length, uint8_t data);
+
+
 
 #endif //__I2CDEV_H__

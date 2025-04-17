@@ -24,6 +24,8 @@
  *
  * configblock.c - Simple static implementation of the config block
  */
+
+#if 0
 #define DEBUG_MODULE "CFGBLK"
 
 #include <stdint.h>
@@ -312,3 +314,5 @@ float configblockGetCalibRoll(void)
   else
     return 0;
 }
+
+#endif

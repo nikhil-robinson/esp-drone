@@ -1,31 +1,3 @@
-/**
- *    ||          ____  _ __
- * +------+      / __ )(_) /_______________ _____  ___
- * | 0xBC |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
- * +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
- *  ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
- *
- * ESP-Drone Firmware
- *
- * Copyright 2019-2020  Espressif Systems (Shanghai)
- * Copyright (C) 2011-2018 Bitcraze AB
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, in version 3.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * Implements HAL for sensors MPU9250 and LPS25H
- *
- * 2016.06.15: Initial version by Mike Hamer, http://mikehamer.info
- */
 #include <math.h>
 
 #include "FreeRTOS.h"
@@ -56,9 +28,7 @@
 #include "hmc5883l.h"
 #include "ms5611.h"
 // #include "ak8963.h"
-#include "zranger.h"
 #include "zranger2.h"
-#include "vl53l1x.h"
 #include "flowdeck_v1v2.h"
 #define DEBUG_MODULE "SENSORS"
 #include "debug_cf.h"
@@ -398,6 +368,8 @@ static void sensorsDeviceInit(void)
         lpf2pInit(&gyroLpf[i], 1000, GYRO_LPF_CUTOFF_FREQ);
         lpf2pInit(&accLpf[i], 1000, ACCEL_LPF_CUTOFF_FREQ);
     }
+
+    DEBUG_PRINTI("BMI SPI connection [OK].\n");
 
 #ifdef SENSORS_ENABLE_MAG_HM5883L
     hmc5883lInit(I2C0_DEV);

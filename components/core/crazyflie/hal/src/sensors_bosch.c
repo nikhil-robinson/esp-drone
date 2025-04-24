@@ -3,7 +3,6 @@
 #include "sensors_bosch.h"
 
 #include <math.h>
-
 #include "imu.h"
 
 #include "FreeRTOS.h"
@@ -17,18 +16,18 @@
 #include "ledseq.h"
 #include "sound.h"
 #include "filter.h"
+#include "debug_cf.h"
 
 /* Bosch Sensortec Drivers */
-
-#include "bmi270.h"
 #include "bmm150.h"
-// #include "bmp280.h"
-// #include "bmp3.h"
-// #include "bstdr_comm_support.h"
+#include "bmp280.h"
+#include "bstdr_comm_support.h"
 #include "static_mem.h"
-#include "deck_spi.h"
-#include "bim270_common.h"
+#include "estimator.h"
+#include "bmi270.h"
 #include "config.h"
+#include "stm32_legacy.h"
+#include "bim270_common.h"
 
 #define SENSORS_READ_RATE_HZ 1000
 #define SENSORS_STARTUP_TIME_MS 1000
@@ -48,22 +47,22 @@
 #define SENSORS_BMI270_1G_IN_LSB 65536 / SENSORS_BMI270_ACCEL_CFG / 2
 
 /* BMI055 */
-#define SENSORS_BMI055_GYRO_FS_CFG BMI055_GYRO_RANGE_2000_DPS
-#define SENSORS_BMI055_DEG_PER_LSB_CFG (2.0f * 2000.0f) / 65536.0f
+// #define SENSORS_BMI055_GYRO_FS_CFG BMI055_GYRO_RANGE_2000_DPS
+// #define SENSORS_BMI055_DEG_PER_LSB_CFG (2.0f * 2000.0f) / 65536.0f
 
-#define SENSORS_BMI055_ACCEL_CFG 16
-#define SENSORS_BMI055_ACCEL_FS_CFG BMI055_ACCEL_RANGE_16G
-#define SENSORS_BMI055_G_PER_LSB_CFG (2.0f * (float)SENSORS_BMI055_ACCEL_CFG) / 65536.0f
-#define SENSORS_BMI055_1G_IN_LSB (65536 / SENSORS_BMI055_ACCEL_CFG / 2)
+// #define SENSORS_BMI055_ACCEL_CFG 16
+// #define SENSORS_BMI055_ACCEL_FS_CFG BMI055_ACCEL_RANGE_16G
+// #define SENSORS_BMI055_G_PER_LSB_CFG (2.0f * (float)SENSORS_BMI055_ACCEL_CFG) / 65536.0f
+// #define SENSORS_BMI055_1G_IN_LSB (65536 / SENSORS_BMI055_ACCEL_CFG / 2)
 
 /* BMI088 */
-#define SENSORS_BMI088_GYRO_FS_CFG BMI088_GYRO_RANGE_2000_DPS
-#define SENSORS_BMI088_DEG_PER_LSB_CFG (2.0f * 2000.0f) / 65536.0f
+// #define SENSORS_BMI088_GYRO_FS_CFG BMI088_GYRO_RANGE_2000_DPS
+// #define SENSORS_BMI088_DEG_PER_LSB_CFG (2.0f * 2000.0f) / 65536.0f
 
-#define SENSORS_BMI088_ACCEL_CFG 24
-#define SENSORS_BMI088_ACCEL_FS_CFG BMI088_ACCEL_RANGE_24G
-#define SENSORS_BMI088_G_PER_LSB_CFG (2.0f * (float)SENSORS_BMI088_ACCEL_CFG) / 65536.0f
-#define SENSORS_BMI088_1G_IN_LSB (65536 / SENSORS_BMI088_ACCEL_CFG / 2)
+// #define SENSORS_BMI088_ACCEL_CFG 24
+// #define SENSORS_BMI088_ACCEL_FS_CFG BMI088_ACCEL_RANGE_24G
+// #define SENSORS_BMI088_G_PER_LSB_CFG (2.0f * (float)SENSORS_BMI088_ACCEL_CFG) / 65536.0f
+// #define SENSORS_BMI088_1G_IN_LSB (65536 / SENSORS_BMI088_ACCEL_CFG / 2)
 
 #define SENSORS_VARIANCE_MAN_TEST_TIMEOUT M2T(1000) // Timeout in ms
 #define SENSORS_MAN_TEST_LEVEL_MAX 5.0f             // Max degrees off
@@ -115,9 +114,7 @@ typedef struct
 
 /* initialize necessary variables */
 static struct bmi2_dev bmi270Dev;
-#if 0
 static struct bmp280_t bmp280Dev;
-#endif
 static struct bmm150_dev bmm150Dev;
 
 static xQueueHandle accelPrimDataQueue;
@@ -201,7 +198,7 @@ static void sensorsDeviceInit(void)
   // Wait for sensors to startup
   vTaskDelay(M2T(SENSORS_STARTUP_TIME_MS));
 
-  spi_init();
+  bmi2_spi_init();
   bmi270Dev.intf = BMI2_SPI_INTF;
   bmi270Dev.read = bmi2_spi_read;
   bmi270Dev.write = bmi2_spi_write;
@@ -224,7 +221,7 @@ static void sensorsDeviceInit(void)
     config[GYRO].cfg.gyr.range = SENSORS_BMI270_GYRO_FS_CFG;
     config[GYRO].cfg.gyr.bwp = BMI2_GYR_OSR4_MODE;
 
-    / config[GYRO].cfg.gyr.noise_perf = BMI2_PERF_OPT_MODE;
+    config[GYRO].cfg.gyr.noise_perf = BMI2_PERF_OPT_MODE;
     config[GYRO].cfg.gyr.filter_perf = BMI2_PERF_OPT_MODE;
 
     /* Select the Output data rate, range of accelerometer sensor
@@ -237,7 +234,6 @@ static void sensorsDeviceInit(void)
 
     /* Set the sensor configuration */
     rslt |= bmi2_set_sensor_config(config, 2, &bmi270Dev);
-    bmi270Dev.delay_ms(50);
 
     /* read sensor */
     struct bmi2_sens_data imu_data;
@@ -304,13 +300,13 @@ static void sensorsDeviceInit(void)
 #endif
 
   /* BMM150 */
-  rslt = BMM150_E_COM_FAIL;
+  rslt = BSTDR_E_GEN_ERROR;
 
   /* Sensor interface over I2C */
   bmm150Dev.id = BMM150_DEFAULT_I2C_ADDRESS;
   bmm150Dev.interface = BMM150_I2C_INTF;
-  bmm150Dev.read = bmm150_i2c_read;
-  bmm150Dev.write = bmm150_i2c_write;
+  bmm150Dev.read = (bmm150_com_fptr_t)bstdr_burst_read;
+  bmm150Dev.write = (bmm150_com_fptr_t)bstdr_burst_write;
   bmm150Dev.delay_ms = bstdr_ms_delay;
 
   rslt = bmm150_init(&bmm150Dev);
@@ -327,14 +323,14 @@ static void sensorsDeviceInit(void)
   }
 
   /* BMP280 */
-  rslt = BMP280_E_COM_FAIL;
+  rslt = BSTDR_E_GEN_ERROR;
 
   bmp280Dev.bus_read = bstdr_burst_read;
   bmp280Dev.bus_write = bstdr_burst_write;
   bmp280Dev.delay_ms = bstdr_ms_delay;
   bmp280Dev.dev_addr = BMP280_I2C_ADDRESS1;
   rslt = bmp280_init(&bmp280Dev);
-  if (rslt == BMP280_OK)
+  if (rslt == BSTDR_OK)
   {
     isBarometerPresent = true;
     DEBUG_PRINT("BMP280 I2C connection [OK].\n");
@@ -383,11 +379,11 @@ static void sensorsGyroGet(Axis3i16 *dataOut, uint8_t device)
 
 static void sensorsAccelGet(Axis3i16 *dataOut, uint8_t device)
 {
-    struct bmi2_sens_data imu_data;
-    bmi2_get_sensor_data(&imu_data, pBmi270);
-    dataOut->x = imu_data.acc.x;
-    dataOut->y = imu_data.acc.y;
-    dataOut->z = -imu_data.acc.z;
+  struct bmi2_sens_data imu_data;
+  bmi2_get_sensor_data(&imu_data, pBmi270);
+  dataOut->x = imu_data.acc.x;
+  dataOut->y = imu_data.acc.y;
+  dataOut->z = -imu_data.acc.z;
 }
 
 static void sensorsGyroCalibrate(BiasObj *gyro, uint8_t type)
@@ -427,15 +423,7 @@ sensorsAccelCalibrate(BiasObj *accel, BiasObj *gyro, uint8_t type)
     if ((accel->bufIsFull == 1) && (gyro->found == 1))
     {
       processAccelBias(accel);
-      switch (type)
-      {
-      case SENSORS_BMI270:
-        accel->value.z -= SENSORS_BMI270_1G_IN_LSB;
-        break;
-      case SENSORS_BMI055:
-        accel->value.z -= SENSORS_BMI055_1G_IN_LSB;
-        break;
-      }
+      accel->value.z -= SENSORS_BMI270_1G_IN_LSB;
       sensorsBiasFree(accel);
     }
   }
@@ -483,17 +471,9 @@ static void sensorsTask(void *param)
 #endif
       }
 
-      if (!bmi055GyroBias.found)
-      {
-        sensorsGyroCalibrate(&bmi055GyroBias, SENSORS_BMI055);
+      if (bmi270GyroBias.found
 #ifdef SENSORS_TAKE_ACCEL_BIAS
-        sensorsAccelCalibrate(&bmi055AccelBias,
-                              &bmi055GyroBias, SENSORS_BMI055);
-#endif
-      }
-      if (bmi270GyroBias.found && bmi055GyroBias.found
-#ifdef SENSORS_TAKE_ACCEL_BIAS
-          && bmi270AccelBias.found && bmi055AccelBias.found
+          && bmi270AccelBias.found
 #endif
       )
       {
@@ -514,15 +494,15 @@ static void sensorsTask(void *param)
 #endif
       /* FIXME: for sensor deck v1 realignment has to be added her */
 
-      sensorsApplyBiasAndScale(&sensors.gyro, &gyroPrim,&bmi270GyroBias.value,SENSORS_BMI270_DEG_PER_LSB_CFG);
+      sensorsApplyBiasAndScale(&sensors.gyro, &gyroPrim, &bmi270GyroBias.value, SENSORS_BMI270_DEG_PER_LSB_CFG);
 
       sensorsAccIIRLPFilter(&accelPrim, &accelPrimLPF,
                             &accelPrimStoredFilterValues,
                             (int32_t)sensorsAccLpfAttFactor);
 
       sensorsApplyBiasAndScale(&accelPrimScaled, &accelPrimLPF,
-                              &bmi270AccelBias.value,
-                              SENSORS_BMI270_G_PER_LSB_CFG);
+                               &bmi270AccelBias.value,
+                               SENSORS_BMI270_G_PER_LSB_CFG);
 
       sensorsAccAlignToGravity(&accelPrimScaled, &sensors.acc);
 

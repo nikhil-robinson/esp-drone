@@ -82,7 +82,7 @@
  * subject to change without notice.
  *
  **************************************************************************/
-#include "../interface/bmp280.h"
+#include "bmp280.h"
 
 static struct bmp280_t *p_bmp280; /**< pointer to BMP280 */
 

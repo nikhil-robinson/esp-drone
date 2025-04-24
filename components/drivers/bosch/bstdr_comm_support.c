@@ -81,12 +81,13 @@
 
 
  #include "bstdr_comm_support.h"
- #include "FreeRTOS.h"
- #include "task.h"
+ #include "freertos/FreeRTOS.h"
+ #include "freertos/event_groups.h"
+ #include "freertos/task.h"
  
  // TA: Maybe not so good to bring in these dependencies...
- #include "debug.h"
- #include "eprintf.h"
+//  #include "debug.h"
+//  #include "eprintf.h"
  #include "i2cdev.h"
  
  

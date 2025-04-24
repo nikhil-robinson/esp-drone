@@ -177,7 +177,7 @@ spi_device_interface_config_t devcfg = {
 };
 
 
-esp_err_t spi_init(void)
+esp_err_t bmi2_spi_init(void)
 {
     spiBegin();
     spidev = spi_get_bmi_handle();

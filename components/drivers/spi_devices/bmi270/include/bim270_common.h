@@ -218,7 +218,7 @@ void bmi2_coines_deinit(void);
 
 
 
-
+esp_err_t bmi2_spi_init(void);
 
 
 #ifdef __cplusplus

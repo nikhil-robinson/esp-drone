@@ -248,7 +248,7 @@ BMI2_INTF_RETURN_TYPE bmi2_spi_write(uint8_t reg_addr, const uint8_t *reg_data, 
 void bmi2_delay_us(uint32_t period, void *intf_ptr)
 {
     //coines_delay_usec(period);
-    ets_delay_us(period);
+    vTaskDelay(period/ portTICK_PERIOD_MS); // Delay a while to let the device stabilize
 }
 
 /*!

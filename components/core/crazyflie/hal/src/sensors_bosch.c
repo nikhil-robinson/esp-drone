@@ -4,8 +4,6 @@
 
 #include <math.h>
 
-#include "stm32fxxx.h"
-
 #include "imu.h"
 
 #include "FreeRTOS.h"
@@ -15,23 +13,22 @@
 #include "system.h"
 #include "configblock.h"
 #include "param.h"
-#include "debug.h"
 #include "nvicconf.h"
 #include "ledseq.h"
 #include "sound.h"
 #include "filter.h"
 
 /* Bosch Sensortec Drivers */
-#include "bmi055.h"
-#include "bmi088.h"
+
 #include "bmi270.h"
 #include "bmm150.h"
-#include "bmp280.h"
-#include "bmp3.h"
-#include "bstdr_comm_support.h"
+// #include "bmp280.h"
+// #include "bmp3.h"
+// #include "bstdr_comm_support.h"
 #include "static_mem.h"
 #include "deck_spi.h"
 #include "bim270_common.h"
+#include "config.h"
 
 #define SENSORS_READ_RATE_HZ 1000
 #define SENSORS_STARTUP_TIME_MS 1000
@@ -117,10 +114,10 @@ typedef struct
 } BiasObj;
 
 /* initialize necessary variables */
-static struct bmi2_dev Bmi270;
-static struct bmi2_dev *pBmi270 = &Bmi270;
-static struct bmi055_dev bmi055Dev;
+static struct bmi2_dev bmi270Dev;
+#if 0
 static struct bmp280_t bmp280Dev;
+#endif
 static struct bmm150_dev bmm150Dev;
 
 static xQueueHandle accelPrimDataQueue;
@@ -205,13 +202,13 @@ static void sensorsDeviceInit(void)
   vTaskDelay(M2T(SENSORS_STARTUP_TIME_MS));
 
   spi_init();
-  Bmi270.intf = BMI2_SPI_INTF;
-  Bmi270.read = bmi2_spi_read;
-  Bmi270.write = bmi2_spi_write;
-  Bmi270.delay_us = bmi2_delay_us;
-  Bmi270.dummy_byte = 1;
-  Bmi270.gyro_en = 1;
-  rslt = bmi270_init(&Bmi270); // initialize the device
+  bmi270Dev.intf = BMI2_SPI_INTF;
+  bmi270Dev.read = bmi2_spi_read;
+  bmi270Dev.write = bmi2_spi_write;
+  bmi270Dev.delay_us = bmi2_delay_us;
+  bmi270Dev.dummy_byte = 1;
+  bmi270Dev.gyro_en = 1;
+  rslt = bmi270_init(&bmi270Dev); // initialize the device
   if (rslt == BSTDR_OK)
   {
     DEBUG_PRINT("BMI270 I2C connection [OK].\n");
@@ -219,7 +216,7 @@ static void sensorsDeviceInit(void)
 
     config[ACCEL].type = BMI2_ACCEL;
     config[GYRO].type = BMI2_GYRO;
-    rslt |= bmi2_get_sensor_config(config, 2, &Bmi270);
+    rslt |= bmi2_get_sensor_config(config, 2, &bmi270Dev);
     bmi2_error_codes_print_result(rslt);
     /* Select the Output data rate, range of Gyroscope sensor
      * ~92Hz BW by OSR4 @ODR=800Hz */
@@ -239,12 +236,12 @@ static void sensorsDeviceInit(void)
     config[ACCEL].cfg.acc.filter_perf = BMI2_PERF_OPT_MODE;
 
     /* Set the sensor configuration */
-    rslt |= bmi2_set_sensor_config(config, 2, &Bmi270);
-    Bmi270.delay_ms(50);
+    rslt |= bmi2_set_sensor_config(config, 2, &bmi270Dev);
+    bmi270Dev.delay_ms(50);
 
     /* read sensor */
     struct bmi2_sens_data imu_data;
-    rslt |= bmi2_get_sensor_data(&imu_data, &Bmi270);
+    rslt |= bmi2_get_sensor_data(&imu_data, &bmi270Dev);
   }
   else
   {

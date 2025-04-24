@@ -39,4 +39,6 @@ void digitalWrite(uint32_t pin, uint32_t val);
 
 int digitalRead(uint32_t pin);
 
+void delay(uint32_t ms);
+
 #endif

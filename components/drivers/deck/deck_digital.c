@@ -23,6 +23,8 @@
 #include "driver/gpio.h"
 #include "deck_digital.h"
 #include "config.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 void pinMode(uint32_t pin, uint32_t mode)
 {
@@ -78,4 +80,9 @@ int digitalRead(uint32_t pin)
 
     int val = gpio_get_level(pin);
     return val;
+}
+
+void delay(uint32_t ms)
+{
+    vTaskDelay(ms / portTICK_PERIOD_MS);
 }

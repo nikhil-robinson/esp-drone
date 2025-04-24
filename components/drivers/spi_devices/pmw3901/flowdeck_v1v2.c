@@ -39,6 +39,7 @@
 #include "cf_math.h"
 #define DEBUG_MODULE "FLOW"
 #include "debug_cf.h"
+#include "deck_spi.h"
 
 #define AVERAGE_HISTORY_LENGTH 4
 #define OULIER_LIMIT 100
@@ -75,7 +76,7 @@ static bool useAdaptiveStd = true;
 // (will not work if useAdaptiveStd is on)
 static float flowStdFixed = 2.0f;
 
-#define NCS_PIN CONFIG_SPI_PIN_CS0
+#define NCS_PIN SPI_CS2_PIN
 
 
 static void flowdeckTask(void *param)

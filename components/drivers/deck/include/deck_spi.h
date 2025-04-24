@@ -33,12 +33,20 @@
 #define SPI_BAUDRATE_3MHZ   3*1000*1000
 #define SPI_BAUDRATE_2MHZ   2*1000*1000
 
+#define SPI_SCK_PIN 44
+#define SPI_MOSI_PIN 14
+#define SPI_MISO_PIN 43
+#define SPI_CS1_PIN 46 // BMI270
+#define SPI_CS2_PIN 12 // PMW3901
+
+
 /**
  * Initialize the SPI.
  */
 void spiBegin(void);
 void spiBeginTransaction(uint32_t baudRatePrescaler);
 void spiEndTransaction();
+spi_device_handle_t spi_get_bmi_handle(void);
 
 /* Send the data_tx buffer and receive into the data_rx buffer */
 bool spiExchange(size_t length, bool is_tx, const uint8_t *data_tx, uint8_t *data_rx);

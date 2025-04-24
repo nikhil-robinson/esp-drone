@@ -30,14 +30,7 @@
 #define DEBUG_MODULE "DECK_SPI"
 #include "debug_cf.h"
 
-#ifdef CONFIG_EXT_FLOW_TESTBOARD //This board use wrong pin definition,only for test.
-    #define SPI_SCK_PIN CONFIG_SPI_PIN_MOSI
-    #define SPI_MOSI_PIN CONFIG_SPI_PIN_CLK
-#else
-    #define SPI_SCK_PIN CONFIG_SPI_PIN_CLK
-    #define SPI_MOSI_PIN CONFIG_SPI_PIN_MOSI
-#endif
-#define SPI_MISO_PIN CONFIG_SPI_PIN_MISO
+
 
 #define DUMMY_BYTE 0xA5
 
@@ -47,6 +40,7 @@ static SemaphoreHandle_t spiMutex;
 static void spiConfigureWithSpeed(uint32_t baudRatePrescaler);
 
 static spi_device_handle_t spi;
+static spi_device_handle_t bmi_spi = NULL;
 
 void spiBegin(void)
 {
@@ -66,28 +60,46 @@ void spiBegin(void)
         .quadhd_io_num = -1,
         .max_transfer_sz = 0
     }; //Defaults to 4094 if 0
-    spi_device_interface_config_t devcfg = {
+    spi_device_interface_config_t pwm_devcfg = {
         .clock_speed_hz = SPI_BAUDRATE_2MHZ, //Clock out at 10 MHz
         .mode = 3,							 //SPI mode 0
         .spics_io_num = -1,					 //CS pin
         .queue_size = 8,					 //We want to be able to queue 7 transactions at a time
         /*.pre_cb = lcd_spi_pre_transfer_callback, //Specify pre-transfer callback to handle D/C line*/
     };
+
+    spi_device_interface_config_t bmi_devcfg = {
+        .command_bits = 0,
+        .address_bits = 0,
+        .dummy_bits = 0,
+        .mode = 0,
+        .duty_cycle_pos = 128,  // default 128 = 50%/50% duty
+        .cs_ena_pretrans = 0, // 0 not used
+        .cs_ena_posttrans = 0,  // 0 not used
+        .clock_speed_hz = SPI_MASTER_FREQ_8M,// 8,9,10,11,13,16,20,26,40,80
+        .spics_io_num = SPI_CS1_PIN,
+        .flags = 0,  // 0 not used
+        .queue_size = 10,// transactionのキュー数。1以上の値を入れておく。
+        .pre_cb = NULL,// transactionが始まる前に呼ばれる関数をセットできる
+        .post_cb = NULL,// transactionが完了した後に呼ばれる関数をセットできる
+    };
     //Initialize the SPI bus
     spi_host_device_t host_id = SPI2_HOST;
-#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 3, 0))
     ret = spi_bus_initialize(host_id, &buscfg, SPI_DMA_CH_AUTO);
-#else
-    int dma_chan = host_id; //set dma channel equals to host_id by default
-    ret = spi_bus_initialize(host_id, &buscfg, dma_chan);
-#endif
     ESP_ERROR_CHECK(ret);
     //Attach the pmw3901 to the SPI bus
-    ret = spi_bus_add_device(host_id, &devcfg, &spi);
+    ret = spi_bus_add_device(host_id, &pwm_devcfg, &spi);
+    ESP_ERROR_CHECK(ret);
+    ret = spi_bus_add_device(host_id, &bmi_devcfg, &bmi_spi);
     ESP_ERROR_CHECK(ret);
 
     isInit = true;
 }
+
+spi_device_handle_t spi_get_bmi_handle(void)
+{
+    return bmi_spi;
+} 
 
 static void spiConfigureWithSpeed(uint32_t baudRatePrescaler)
 {

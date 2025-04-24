@@ -43,17 +43,10 @@ static void registerWrite(uint32_t csPin, uint8_t reg, uint8_t value)
     reg |= 0x80u;
 
     spiBeginTransaction(SPI_BAUDRATE_2MHZ);
-    digitalWrite(csPin, LOW);
-
-    sleepus(50);
-
     spiExchange(1, 1, &reg, &reg);
     sleepus(50);
     spiExchange(1, 1, &value, &value);
-
     sleepus(50);
-
-    digitalWrite(csPin, HIGH);
     spiEndTransaction();
     sleepus(200);
 }
@@ -62,22 +55,12 @@ static uint8_t registerRead(uint32_t csPin, uint8_t reg)
 {
     uint8_t data = 0;
     uint8_t dummy = 0;
-
     // Set MSB to 0 for read
     reg &= ~0x80u;
-
     spiBeginTransaction(SPI_BAUDRATE_2MHZ);
-    digitalWrite(csPin, LOW);
-
-    sleepus(50);
-
     spiExchange(1, 1, &reg, &reg);
     sleepus(500);
     spiExchange(1, 0, &dummy, &data);
-
-    sleepus(50);
-
-    digitalWrite(csPin, HIGH);
     spiEndTransaction();
     sleepus(200);
 
@@ -175,8 +158,6 @@ bool pmw3901Init(uint32_t csPin)
     }
 
     // Initialize CS Pin
-    pinMode(csPin, OUTPUT);
-    digitalWrite(csPin, HIGH);
 
     spiBegin();
     vTaskDelay(M2T(40));
@@ -219,13 +200,10 @@ void pmw3901ReadMotion(uint32_t csPin, motionBurst_t *motion)
     uint8_t address = 0x16;
 
     spiBeginTransaction(SPI_BAUDRATE_2MHZ);
-    digitalWrite(csPin, LOW);
-    sleepus(50);
     spiExchange(1, 1, &address, &address);
     sleepus(50);
     spiExchange(sizeof(motionBurst_t), 0, (uint8_t *)motion, (uint8_t *)motion);
     sleepus(50);
-    digitalWrite(csPin, HIGH);
     spiEndTransaction();
     sleepus(50);
 

@@ -24,6 +24,7 @@
 #include "driver/spi_master.h"
 
 #include "deck_spi.h"
+#include "deck_digital.h"
 #include "config.h"
 #include "cfassert.h"
 #include "nvicconf.h"
@@ -58,14 +59,22 @@ void spiBegin(void)
         .sclk_io_num = SPI_SCK_PIN,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
-        .max_transfer_sz = 0
+        .max_transfer_sz = 4096*2,
     }; //Defaults to 4094 if 0
     spi_device_interface_config_t pwm_devcfg = {
-        .clock_speed_hz = SPI_BAUDRATE_2MHZ, //Clock out at 10 MHz
-        .mode = 3,							 //SPI mode 0
-        .spics_io_num = -1,					 //CS pin
-        .queue_size = 8,					 //We want to be able to queue 7 transactions at a time
-        /*.pre_cb = lcd_spi_pre_transfer_callback, //Specify pre-transfer callback to handle D/C line*/
+        .command_bits = 0,
+        .address_bits = 0,
+        .dummy_bits = 0,
+        .mode = 3,
+        .duty_cycle_pos = 128,  // default 128 = 50%/50% duty
+        .cs_ena_pretrans = 0, // 0 not used
+        .cs_ena_posttrans = 0,  // 0 not used
+        .clock_speed_hz = 2000000,// 8,9,10,11,13,16,20,26,40,80
+        .spics_io_num = SPI_CS2_PIN,
+        .flags = 0,  // 0 not used
+        .queue_size = 10,// transactionのキュー数。1以上の値を入れておく。
+        .pre_cb = NULL,// transactionが始まる前に呼ばれる関数をセットできる
+        .post_cb = NULL,// transactionが完了した後に呼ばれる関数をセットできる
     };
 
     spi_device_interface_config_t bmi_devcfg = {
@@ -76,13 +85,19 @@ void spiBegin(void)
         .duty_cycle_pos = 128,  // default 128 = 50%/50% duty
         .cs_ena_pretrans = 0, // 0 not used
         .cs_ena_posttrans = 0,  // 0 not used
-        .clock_speed_hz = SPI_MASTER_FREQ_8M,// 8,9,10,11,13,16,20,26,40,80
+        .clock_speed_hz = 2000000,// 8,9,10,11,13,16,20,26,40,80
         .spics_io_num = SPI_CS1_PIN,
         .flags = 0,  // 0 not used
         .queue_size = 10,// transactionのキュー数。1以上の値を入れておく。
         .pre_cb = NULL,// transactionが始まる前に呼ばれる関数をセットできる
         .post_cb = NULL,// transactionが完了した後に呼ばれる関数をセットできる
     };
+
+    pinMode(46, OUTPUT);//CSを設定
+    digitalWrite(46, 1);//CSをHIGH
+    pinMode(12, OUTPUT);//CSを設定
+    digitalWrite(12, 1);//CSをHIGH
+    vTaskDelay(5 / portTICK_PERIOD_MS);
     //Initialize the SPI bus
     spi_host_device_t host_id = SPI2_HOST;
     ret = spi_bus_initialize(host_id, &buscfg, SPI_DMA_CH_AUTO);

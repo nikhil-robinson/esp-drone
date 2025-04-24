@@ -28,6 +28,7 @@
 #include "led.h"
 #include "stm32_legacy.h"
 #include "led_strip.h"
+#include "config.h"
 
 // static unsigned int led_pin[] = {
 //     [LED_BLUE] = LED_GPIO_BLUE,
@@ -58,7 +59,7 @@ void ledInit()
     }
 
     led_strip_config_t strip_config = {
-        .strip_gpio_num = LED_GPIO,                                  // The GPIO that connected to the LED strip's data line
+        .strip_gpio_num = CONFIG_LED_PIN,                                  // The GPIO that connected to the LED strip's data line
         .max_leds = 1,                                               // The number of LEDs in the strip,
         .led_model = LED_MODEL_WS2812,                               // LED strip model
         .color_component_format = LED_STRIP_COLOR_COMPONENT_FMT_GRB, // The color order of the strip: GRB

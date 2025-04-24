@@ -237,9 +237,6 @@ static void sensorsTask(void *param)
                                         (isMagnetometerPresent ? SENSORS_MAG_BUFF_LEN : 0) +
                                         (isBarometerPresent ? SENSORS_BARO_BUFF_LEN : 0));
 
-            imu_update();
-
-            /* sensors step 2-process the respective data */
             processAccGyroMeasurements();
 
             if (isMagnetometerPresent)
@@ -278,7 +275,7 @@ static void sensorsTask(void *param)
 
 void sensorsMpu6050Hmc5883lMs5611WaitDataReady(void)
 {
-    xSemaphoreTake(dataReady, portMAX_DELAY);
+    // xSemaphoreTake(dataReady, portMAX_DELAY);
 }
 
 void processBarometerMeasurements(const uint8_t *buffer)
@@ -323,24 +320,31 @@ void processAccGyroMeasurements()
     /*  Note the ordering to correct the rotated 90º IMU coordinate system */
 
     Axis3f accScaled;
+    imu_update();
 
-    /* sensors step 2.1 read from buffer */
-    // accelRaw.y = (((int16_t)buffer[0]) << 8) | buffer[1];
-    // accelRaw.x = (((int16_t)buffer[2]) << 8) | buffer[3];
-    // accelRaw.z = (((int16_t)buffer[4]) << 8) | buffer[5];
-    // gyroRaw.y = (((int16_t)buffer[8]) << 8) | buffer[9];
-    // gyroRaw.x = (((int16_t)buffer[10]) << 8) | buffer[11];
-    // gyroRaw.z = (((int16_t)buffer[12]) << 8) | buffer[13];
+    gyroRaw.x = imu_get_gyro_x_raw();
+    gyroRaw.y = imu_get_gyro_y_raw();
+    gyroRaw.z = -(imu_get_gyro_z_raw());
 
-    sensorData.gyro.x = imu_get_gyro_x();
-    sensorData.gyro.y = imu_get_gyro_y();
-    sensorData.gyro.z = imu_get_gyro_z();
+    accelRaw.x = imu_get_acc_x_raw();
+    accelRaw.y = imu_get_acc_y_raw();
+    accelRaw.z = -(imu_get_acc_z_raw());
+
+    gyroBiasFound = processGyroBias(gyroRaw.x, gyroRaw.y, gyroRaw.z, &gyroBias);
+
+    if (gyroBiasFound) {
+        processAccScale(accelRaw.x, accelRaw.y, accelRaw.z);
+    }
+
+    sensorData.gyro.x = imu_get_gyro_x()    - gyroBias.x;
+    sensorData.gyro.y = imu_get_gyro_y( )   - gyroBias.y ;
+    sensorData.gyro.z = -(imu_get_gyro_z()    - gyroBias.z);
     /* sensors step 2.5 low pass filter */
     applyAxis3fLpf((lpf2pData *)(&gyroLpf), &sensorData.gyro);
 
-    accScaled.x = imu_get_acc_x();
-    accScaled.y = imu_get_acc_x();
-    accScaled.z = imu_get_acc_y();
+    accScaled.x = imu_get_acc_x() / accScale;
+    accScaled.y = imu_get_acc_y() / accScale;
+    accScaled.z = -(imu_get_acc_z() / accScale);
 
     /* sensors step 2.6 Compensate for a miss-aligned accelerometer. */
     sensorsAccAlignToGravity(&accScaled, &sensorData.acc);

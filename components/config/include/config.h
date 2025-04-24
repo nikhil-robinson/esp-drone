@@ -76,8 +76,8 @@
 #endif
 
 
-#define CONFIG_BUZZER_ON 12
-#define CONFIG_BUZ1_PIN_POS 39
+#define CONFIG_BUZZER_ON 
+#define CONFIG_BUZ1_PIN_POS 40
 
 
 #define CONFIG_I2C0_PIN_SDA 3

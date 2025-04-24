@@ -327,6 +327,7 @@ static void stabilizerTask(void* param)
         rateWarningDisplayed = true;
       }
     }
+    vTaskDelay(1);
   }
 }
 

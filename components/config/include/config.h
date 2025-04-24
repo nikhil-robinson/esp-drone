@@ -79,6 +79,36 @@
 //#define DEBUG_UDP
 //#define DEBUG_EP2
 
+
+#define CONFIG_BUZZER_ON 
+#define CONFIG_BUZ1_PIN_POS 40
+
+
+#define CONFIG_I2C0_PIN_SDA 3
+#define CONFIG_I2C0_PIN_SCL 4
+
+#define CONFIG_I2C1_PIN_SDA 13
+#define CONFIG_I2C1_PIN_SCL 15
+
+
+#define CONFIG_SPI_PIN_MISO 43
+#define CONFIG_SPI_PIN_MOSI 14
+#define CONFIG_SPI_PIN_CLK 44
+#define CONFIG_SPI_PIN_CS1 46
+#define CONFIG_SPI_PIN_CS2 12
+
+
+// #define CONFIG_ADC1_PIN 2
+// #define CONFIG_EXT01_PIN 1
+
+#define CONFIG_LED_PIN 39
+
+#define CONFIG_MOTOR_BRUSHED_720 1
+#define CONFIG_MOTOR01_PIN 5
+#define CONFIG_MOTOR02_PIN 42
+#define CONFIG_MOTOR03_PIN 10
+#define CONFIG_MOTOR04_PIN 41
+
 // Task priorities. Higher number higher priority
 // system state tasks
 #define SYSTEM_TASK_PRI         1

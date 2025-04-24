@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include "driver/spi_master.h"
 
 // Based on 84MHz peripheral clock
 #define SPI_BAUDRATE_21MHZ  21*1000*1000

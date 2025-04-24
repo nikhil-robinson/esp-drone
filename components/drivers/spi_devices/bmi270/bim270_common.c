@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common.h"
+#include "bim270_common.h"
 #include "deck_spi.h"
 #include "deck_digital.h"
 //#include "bmi2_defs.h"

@@ -30,6 +30,8 @@
 #include "bmp3.h"
 #include "bstdr_comm_support.h"
 #include "static_mem.h"
+#include "deck_spi.h"
+#include "bim270_common.h"
 
 #define SENSORS_READ_RATE_HZ 1000
 #define SENSORS_STARTUP_TIME_MS 1000
@@ -89,15 +91,15 @@
 #define SENSORS_BMM150 0x08
 #define SENSORS_BMP280 0x10
 
-#define ACCEL          UINT8_C(0x00)
-#define GYRO           UINT8_C(0x01)
+#define ACCEL UINT8_C(0x00)
+#define GYRO UINT8_C(0x01)
 
 /* configure sensor's use
  * PRIMARIES are the sensors which are used for stabilization
  * SECONDARIES are only added to the log if compilations is
  * done with CFLAGS += -DLOG_SEC_IMU */
-static uint8_t gyroPrimInUse = SENSORS_BMI055;
-static uint8_t accelPrimInUse = SENSORS_BMI055;
+static uint8_t gyroPrimInUse = SENSORS_BMI270;
+static uint8_t accelPrimInUse = SENSORS_BMI270;
 // static uint8_t baroPrimInUse =          SENSORS_BMP280;
 #ifdef LOG_SEC_IMU
 static uint8_t gyroSecInUse = SENSORS_BMI270;
@@ -202,16 +204,13 @@ static void sensorsDeviceInit(void)
   // Wait for sensors to startup
   vTaskDelay(M2T(SENSORS_STARTUP_TIME_MS));
 
-  /* BMI270 */
-  // assign bus read function
+  spi_init();
   Bmi270.intf = BMI2_SPI_INTF;
-  // Bmi270.chip_id = 0x24;
   Bmi270.read = bmi2_spi_read;
   Bmi270.write = bmi2_spi_write;
   Bmi270.delay_us = bmi2_delay_us;
   Bmi270.dummy_byte = 1;
   Bmi270.gyro_en = 1;
-
   rslt = bmi270_init(&Bmi270); // initialize the device
   if (rslt == BSTDR_OK)
   {
@@ -308,13 +307,13 @@ static void sensorsDeviceInit(void)
 #endif
 
   /* BMM150 */
-  rslt = BSTDR_E_GEN_ERROR;
+  rslt = BMM150_E_COM_FAIL;
 
   /* Sensor interface over I2C */
   bmm150Dev.id = BMM150_DEFAULT_I2C_ADDRESS;
   bmm150Dev.interface = BMM150_I2C_INTF;
-  bmm150Dev.read = (bmm150_com_fptr_t)bstdr_burst_read;
-  bmm150Dev.write = (bmm150_com_fptr_t)bstdr_burst_write;
+  bmm150Dev.read = bmm150_i2c_read;
+  bmm150Dev.write = bmm150_i2c_write;
   bmm150Dev.delay_ms = bstdr_ms_delay;
 
   rslt = bmm150_init(&bmm150Dev);
@@ -331,14 +330,14 @@ static void sensorsDeviceInit(void)
   }
 
   /* BMP280 */
-  rslt = BSTDR_E_GEN_ERROR;
+  rslt = BMP280_E_COM_FAIL;
 
   bmp280Dev.bus_read = bstdr_burst_read;
   bmp280Dev.bus_write = bstdr_burst_write;
   bmp280Dev.delay_ms = bstdr_ms_delay;
   bmp280Dev.dev_addr = BMP280_I2C_ADDRESS1;
   rslt = bmp280_init(&bmp280Dev);
-  if (rslt == BSTDR_OK)
+  if (rslt == BMP280_OK)
   {
     isBarometerPresent = true;
     DEBUG_PRINT("BMP280 I2C connection [OK].\n");
@@ -378,42 +377,20 @@ static void sensorsTaskInit(void)
 
 static void sensorsGyroGet(Axis3i16 *dataOut, uint8_t device)
 {
-  static struct bmi270_sensor_data temp;
-  switch (device)
-  {
-  case SENSORS_BMI270:
-    bmi270_get_sensor_data(BMI270_GYRO_ONLY, NULL, &temp, &Bmi270);
-    dataOut->x = temp.x;
-    dataOut->y = temp.y;
-    dataOut->z = temp.z;
-    break;
-  case SENSORS_BMI055:
-    bmi055_get_gyro_data(
-        (struct bmi055_sensor_data *)dataOut, &bmi055Dev);
-    break;
-  }
+  struct bmi2_sens_data imu_data;
+  bmi2_get_sensor_data(&imu_data, pBmi270);
+  dataOut->x = imu_data.gyr.x;
+  dataOut->y = imu_data.gyr.y;
+  dataOut->z = -imu_data.gyr.z;
 }
 
 static void sensorsAccelGet(Axis3i16 *dataOut, uint8_t device)
 {
-  static struct bmi270_sensor_data temp;
-  switch (device)
-  {
-  case SENSORS_BMI270:
-    bmi270_get_sensor_data(BMI270_ACCEL_ONLY, &temp, NULL, &Bmi270);
-    dataOut->x = temp.x;
-    dataOut->y = temp.y;
-    dataOut->z = temp.z;
-    break;
-  case SENSORS_BMI055:
-    bmi055_get_accel_data(
-        (struct bmi055_sensor_data *)dataOut, &bmi055Dev);
-    /* scale to 16 bit */
-    dataOut->x = dataOut->x << 4;
-    dataOut->y = dataOut->y << 4;
-    dataOut->z = dataOut->z << 4;
-    break;
-  }
+    struct bmi2_sens_data imu_data;
+    bmi2_get_sensor_data(&imu_data, pBmi270);
+    dataOut->x = imu_data.acc.x;
+    dataOut->y = imu_data.acc.y;
+    dataOut->z = -imu_data.acc.z;
 }
 
 static void sensorsGyroCalibrate(BiasObj *gyro, uint8_t type)
@@ -540,37 +517,15 @@ static void sensorsTask(void *param)
 #endif
       /* FIXME: for sensor deck v1 realignment has to be added her */
 
-      switch (gyroPrimInUse)
-      {
-      case SENSORS_BMI270:
-        sensorsApplyBiasAndScale(&sensors.gyro, &gyroPrim,
-                                 &bmi270GyroBias.value,
-                                 SENSORS_BMI270_DEG_PER_LSB_CFG);
-        break;
-      case SENSORS_BMI055:
-        sensorsApplyBiasAndScale(&sensors.gyro, &gyroPrim,
-                                 &bmi055GyroBias.value,
-                                 SENSORS_BMI055_DEG_PER_LSB_CFG);
-        break;
-      }
+      sensorsApplyBiasAndScale(&sensors.gyro, &gyroPrim,&bmi270GyroBias.value,SENSORS_BMI270_DEG_PER_LSB_CFG);
 
       sensorsAccIIRLPFilter(&accelPrim, &accelPrimLPF,
                             &accelPrimStoredFilterValues,
                             (int32_t)sensorsAccLpfAttFactor);
 
-      switch (accelPrimInUse)
-      {
-      case SENSORS_BMI270:
-        sensorsApplyBiasAndScale(&accelPrimScaled, &accelPrimLPF,
-                                 &bmi270AccelBias.value,
-                                 SENSORS_BMI270_G_PER_LSB_CFG);
-        break;
-      case SENSORS_BMI055:
-        sensorsApplyBiasAndScale(&accelPrimScaled, &accelPrimLPF,
-                                 &bmi055AccelBias.value,
-                                 SENSORS_BMI055_G_PER_LSB_CFG);
-        break;
-      }
+      sensorsApplyBiasAndScale(&accelPrimScaled, &accelPrimLPF,
+                              &bmi270AccelBias.value,
+                              SENSORS_BMI270_G_PER_LSB_CFG);
 
       sensorsAccAlignToGravity(&accelPrimScaled, &sensors.acc);
 

@@ -28,6 +28,7 @@
 #include "config.h"
 #include "stm32_legacy.h"
 #include "bim270_common.h"
+#include "i2cdev.h"
 
 #define SENSORS_READ_RATE_HZ 1000
 #define SENSORS_STARTUP_TIME_MS 1000
@@ -195,9 +196,11 @@ static void sensorsDeviceInit(void)
   bstdr_ret_t rslt;
   isBarometerPresent = false;
 
+  
   // Wait for sensors to startup
   vTaskDelay(M2T(SENSORS_STARTUP_TIME_MS));
-
+  
+  i2cdevInit(I2C0_DEV);
   bmi2_spi_init();
   bmi270Dev.intf = BMI2_SPI_INTF;
   bmi270Dev.read = bmi2_spi_read;

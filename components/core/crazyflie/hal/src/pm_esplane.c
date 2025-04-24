@@ -45,6 +45,7 @@
 #define DEBUG_MODULE "PM"
 #include "debug_cf.h"
 #include "static_mem.h"
+#include "ina3221.h"
 
 typedef struct _PmSyslinkInfo
 {
@@ -111,13 +112,25 @@ const static float bat671723HS25C[10] =
 
 STATIC_MEM_TASK_ALLOC(pmTask, PM_TASK_STACKSIZE);
 
+ina3221_config_t ina3221_config;
+
 void pmInit(void)
 {
   if(isInit) {
     return;
   }
 
-    pmEnableExtBatteryVoltMeasuring(CONFIG_ADC1_PIN, 2); // ADC1 PIN is fixed to ADC channel
+    // pmEnableExtBatteryVoltMeasuring(CONFIG_ADC1_PIN, 2); // ADC1 PIN is fixed to ADC channel
+    ina3221_config = ina3221_init(I2C_NUM_0, 21, 22, 100000, INA3221_ADDR40_GND);
+    
+    // Set shunt resistors
+    ina3221_config = ina3221_set_shunt_res(ina3221_config, 10, 10, 10);
+    
+    // Enable continuous mode
+    ina3221_set_mode_continuous(ina3221_config);
+    
+    // Enable channel 1
+    ina3221_set_channel_enable(ina3221_config, INA3221_CH1);
 
     pmSyslinkInfo.pgood = false;
     pmSyslinkInfo.chg = false;
@@ -259,7 +272,7 @@ float pmMeasureExtBatteryCurrent(void)
 
   if (isExtBatCurrDeckPinSet)
   {
-    current = analogReadVoltage(extBatCurrDeckPin) * extBatCurrAmpPerVolt;
+    current = ina3221_get_current(ina3221_config, INA3221_CH1);
   }
   else
   {
@@ -282,7 +295,7 @@ float pmMeasureExtBatteryVoltage(void)
 
   if (isExtBatVoltDeckPinSet)
   {
-    voltage = analogReadVoltage(extBatVoltDeckPin) * extBatVoltMultiplier;
+    voltage = ina3221_get_voltage(ina3221_config, INA3221_CH1);;
   }
   else
   {

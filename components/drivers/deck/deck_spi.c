@@ -93,10 +93,10 @@ void spiBegin(void)
         .post_cb = NULL,// transactionが完了した後に呼ばれる関数をセットできる
     };
 
-    pinMode(46, OUTPUT);//CSを設定
-    digitalWrite(46, 1);//CSをHIGH
-    pinMode(12, OUTPUT);//CSを設定
-    digitalWrite(12, 1);//CSをHIGH
+    pinMode(SPI_CS2_PIN, OUTPUT);//CSを設定
+    digitalWrite(SPI_CS2_PIN, 1);//CSをHIGH
+    pinMode(SPI_CS1_PIN, OUTPUT);//CSを設定
+    digitalWrite(SPI_CS1_PIN, 1);//CSをHIGH
     vTaskDelay(5 / portTICK_PERIOD_MS);
     //Initialize the SPI bus
     spi_host_device_t host_id = SPI2_HOST;

@@ -181,8 +181,6 @@ esp_err_t bmi2_spi_init(void)
 {
     spiBegin();
     spidev = spi_get_bmi_handle();
-    pinMode(SPI_CS1_PIN, OUTPUT);
-    digitalWrite(SPI_CS1_PIN, HIGH);
     return (spidev == NULL) ? ESP_FAIL : ESP_OK;
 }
 

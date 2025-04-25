@@ -30,6 +30,10 @@
 #include "bim270_common.h"
 #include "i2cdev.h"
 
+#include "zranger2.h"
+#include "flowdeck_v1v2.h"
+#include "crtp_commander.h"
+
 #define SENSORS_READ_RATE_HZ 1000
 #define SENSORS_STARTUP_TIME_MS 1000
 #define SENSORS_READ_BARO_HZ 50
@@ -46,6 +50,17 @@
 #define SENSORS_BMI270_ACCEL_FS_CFG BMI2_ACC_RANGE_16G
 #define SENSORS_BMI270_G_PER_LSB_CFG (2.0f * (float)SENSORS_BMI270_ACCEL_CFG) / 65536.0f
 #define SENSORS_BMI270_1G_IN_LSB 65536 / SENSORS_BMI270_ACCEL_CFG / 2
+
+#define SENSORS_ENABLE_RANGE_VL53LX
+#define SENSORS_ENABLE_FLOW_PMW3901
+
+#ifdef SENSORS_ENABLE_RANGE_VL53LX
+static bool isVl53l1xPresent = false;
+#endif
+
+#ifdef SENSORS_ENABLE_FLOW_PMW3901
+static bool isPmw3901Present = false;
+#endif
 
 /* BMI055 */
 // #define SENSORS_BMI055_GYRO_FS_CFG BMI055_GYRO_RANGE_2000_DPS
@@ -211,7 +226,7 @@ static void sensorsDeviceInit(void)
   rslt = bmi270_init(&bmi270Dev); // initialize the device
   if (rslt == BSTDR_OK)
   {
-    DEBUG_PRINT("BMI270 I2C connection [OK].\n");
+    DEBUG_PRINTI("BMI270 SPI connection [OK].\n");
     struct bmi2_sens_config config[2];
 
     config[ACCEL].type = BMI2_ACCEL;
@@ -244,7 +259,7 @@ static void sensorsDeviceInit(void)
   }
   else
   {
-    DEBUG_PRINT("BMI270 I2C connection [FAIL].\n");
+    DEBUG_PRINTW("BMI270 SPI connection [FAIL].\n");
   }
 
 #if 0
@@ -321,7 +336,7 @@ static void sensorsDeviceInit(void)
     bmm150Dev.settings.preset_mode = BMM150_PRESETMODE_HIGHACCURACY;
     rslt |= bmm150_set_presetmode(&bmm150Dev);
 
-    DEBUG_PRINT("BMM150 I2C connection [OK].\n");
+    DEBUG_PRINTI("BMM150 I2C connection [OK].\n");
     isMagnetometerPresent = true;
   }
 
@@ -336,7 +351,7 @@ static void sensorsDeviceInit(void)
   if (rslt == BSTDR_OK)
   {
     isBarometerPresent = true;
-    DEBUG_PRINT("BMP280 I2C connection [OK].\n");
+    DEBUG_PRINTI("BMP280 I2C connection [OK].\n");
     bmp280_set_filter(BMP280_FILTER_COEFF_OFF);
     bmp280_set_oversamp_temperature(BMP280_OVERSAMP_2X);
     bmp280_set_oversamp_pressure(BMP280_OVERSAMP_8X);
@@ -348,6 +363,31 @@ static void sensorsDeviceInit(void)
     bmp280_read_pressure_temperature(&v_pres_u32, &v_temp_s32);
     baroMeasDelayMin = SENSORS_DELAY_BARO;
   }
+#ifdef SENSORS_ENABLE_RANGE_VL53LX
+    zRanger2Init();
+
+    if (zRanger2Test() == true) {
+        isVl53l1xPresent = true;
+        DEBUG_PRINTI("VL53L1X I2C connection [OK].\n");
+    } else {
+        //TODO: Should sensor test fail hard if no connection
+        DEBUG_PRINTW("VL53L1X I2C connection [FAIL].\n");
+    }
+
+#endif
+
+#ifdef SENSORS_ENABLE_FLOW_PMW3901
+    flowdeck2Init();
+
+    if (flowdeck2Test() == true) {
+        isPmw3901Present = true;
+        setCommandermode(POSHOLD_MODE);
+        DEBUG_PRINTI("PMW3901 SPI connection [OK].\n");
+    } else {
+        //TODO: Should sensor test fail hard if no connection
+        DEBUG_PRINTW("PMW3901 SPI connection [FAIL].\n");
+    }
+#endif
   varianceSampleTime = -GYRO_MIN_BIAS_TIMEOUT_MS + 1;
   sensorsAccLpfAttFactor = IMU_ACC_IIR_LPF_ATT_FACTOR;
 

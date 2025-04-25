@@ -119,9 +119,9 @@ void pmInit(void)
   if(isInit) {
     return;
   }
-
+    i2cdevInit(I2C0_DEV);
     // pmEnableExtBatteryVoltMeasuring(CONFIG_ADC1_PIN, 2); // ADC1 PIN is fixed to ADC channel
-    ina3221_config = ina3221_init(I2C_NUM_0, 21, 22, 100000, INA3221_ADDR40_GND);
+    ina3221_config = ina3221_init(I2C0_DEV, 21, 22, 100000, INA3221_ADDR40_GND);
     
     // Set shunt resistors
     ina3221_config = ina3221_set_shunt_res(ina3221_config, 10, 10, 10);

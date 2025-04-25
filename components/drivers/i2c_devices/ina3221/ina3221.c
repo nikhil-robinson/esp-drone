@@ -6,7 +6,7 @@ static const char *TAG = "INA3221";
 static esp_err_t ina3221_read_reg(I2C_Dev *dev, ina3221_addr_t addr, ina3221_reg_t reg, uint16_t *val) {
     uint8_t reg_addr = (uint8_t)reg;
     uint8_t data[2] = {0};
-    esp_err_t ret = i2cdevReadReg8(I2C1_DEV, addr, reg_addr, (uint16_t)2, data);
+    esp_err_t ret = i2cdevReadReg8(I2C0_DEV, addr, reg_addr, (uint16_t)2, data);
     if (ret == ESP_OK) {
         *val = (data[0] << 8) | data[1];
     } 
@@ -21,7 +21,7 @@ static esp_err_t ina3221_write_reg(I2C_Dev *dev, ina3221_addr_t addr, ina3221_re
     uint8_t data[2];
     data[0] = (val >> 8) & 0xFF;
     data[1] = val & 0xFF;
-    esp_err_t ret = i2cdevWriteReg8(I2C1_DEV, addr,reg,(uint16_t) 2, data);
+    esp_err_t ret = i2cdevWriteReg8(I2C0_DEV, addr,reg,(uint16_t) 2, data);
     return ret;
 }
 

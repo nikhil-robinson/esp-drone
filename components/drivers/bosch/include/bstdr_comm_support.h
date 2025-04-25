@@ -125,6 +125,6 @@
   */
  void bstdr_ms_delay(uint32_t period);
 
- void bstdr_us_delay(uint64_t period);
+ void bstdr_us_delay(uint32_t period, void *intf_ptr);
  
  #endif /* __BSTDR_COMM_SUPPORT_H__ */

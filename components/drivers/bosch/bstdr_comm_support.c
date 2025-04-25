@@ -149,7 +149,7 @@ bstdr_ret_t bstdr_burst_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_dat
  *
  * @return None
  */
-void bstdr_us_delay(uint64_t period)
+void bstdr_us_delay(uint32_t period, void *intf_ptr)
 {
   uint64_t start = (uint64_t)esp_timer_get_time();
 

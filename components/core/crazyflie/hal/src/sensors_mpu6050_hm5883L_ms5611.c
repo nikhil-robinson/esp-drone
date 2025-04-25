@@ -494,7 +494,7 @@ static void sensorsDeviceInit(void)
 
 #endif
 
-#ifdef SENSORS_ENABLE_RANGE_VL53L1X
+#ifdef SENSORS_ENABLE_RANGE_VL53LX
     zRanger2Init();
 
     if (zRanger2Test() == true) {

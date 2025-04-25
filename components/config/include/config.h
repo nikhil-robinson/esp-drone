@@ -104,10 +104,10 @@
 #define CONFIG_LED_PIN 39
 
 #define CONFIG_MOTOR_BRUSHED_720 1
-#define CONFIG_MOTOR01_PIN 5
-#define CONFIG_MOTOR02_PIN 42
+#define CONFIG_MOTOR01_PIN 42
+#define CONFIG_MOTOR02_PIN 41
 #define CONFIG_MOTOR03_PIN 10
-#define CONFIG_MOTOR04_PIN 41
+#define CONFIG_MOTOR04_PIN 5
 
 // Task priorities. Higher number higher priority
 // system state tasks

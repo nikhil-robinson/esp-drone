@@ -41,6 +41,7 @@
 #include "buzzer.h"
 #include "stm32_legacy.h"
 #include "sdkconfig.h"
+#include "config.h"
 
 /**
  * Credit to http://tny.cz/e525c1b2 for supplying the tones

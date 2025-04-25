@@ -29,6 +29,7 @@
 #include "buzzer.h"
 //#include "buzzdeck.h"
 #include "sdkconfig.h"
+#include "config.h"
 
 static struct buzzerControl * ctrl;
 

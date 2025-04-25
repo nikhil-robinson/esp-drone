@@ -657,7 +657,7 @@ void sensorsBoschAcquire(sensorData_t *sensors, const uint32_t tick)
 
 bool sensorsBoschAreCalibrated()
 {
-  return allSensorsAreCalibrated;
+  return gyroBiasFound;
 }
 
 static void sensorsCalculateVarianceAndMean(BiasObj *bias, Axis3f *varOut, Axis3f *meanOut)

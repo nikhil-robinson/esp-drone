@@ -71,7 +71,7 @@
  * subject to change without notice.
  */
 
- /*!
+/*!
  * @file		bstdr_comm_support.c
  *
  * @brief
@@ -79,83 +79,86 @@
  *
  */
 
+#include "bstdr_comm_support.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/task.h"
 
- #include "bstdr_comm_support.h"
- #include "freertos/FreeRTOS.h"
- #include "freertos/event_groups.h"
- #include "freertos/task.h"
- 
- // TA: Maybe not so good to bring in these dependencies...
+// TA: Maybe not so good to bring in these dependencies...
 //  #include "debug.h"
 //  #include "eprintf.h"
- #include "i2cdev.h"
- 
- 
- /*!
-  * @brief Communication initialization
-  *
-  * This is optional. Depends on the system you are using
-  *
-  * @return Zero if successful, otherwise an error code
-  */
- bstdr_ret_t bstdr_comm_init(void)
- {
-     /**< Communication initialization --Optional!*/
-     return (bstdr_ret_t)0;
- }
- 
- 
- /*!
-  * @brief Generic burst read
-  *
-  * @param [out] dev_id I2C address, SPI chip select or user desired identifier
-  *
-  * @return Zero if successful, otherwise an error code
-  */
- bstdr_ret_t bstdr_burst_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint32_t len)
- {
-     /**< Burst read code comes here */
-     if (i2cdevReadReg8(I2C0_DEV, dev_id, reg_addr, (uint16_t) len, reg_data))
-     {
-       return BSTDR_OK;
-     }
-     else
-     {
-     return BSTDR_E_CON_ERROR;
-     }
- }
- 
- 
- /*!
-  * @brief Generic burst write
-  *
-  * @param [out] dev_id I2C address, SPI chip select or user desired identifier
-  *
-  * @return Zero if successful, otherwise an error code
-  */
- bstdr_ret_t bstdr_burst_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint32_t len)
- {
-     /**< Burst write code comes here */
-     if (i2cdevWriteReg8(I2C0_DEV, dev_id,reg_addr,(uint16_t) len, reg_data))
-   {
-     return BSTDR_OK;
-   }
-   else
-   {
-     return BSTDR_E_CON_ERROR;
-   }
- }
- 
- 
- /*!
-  * @brief Generic burst read
-  *
-  * @param [in] period Delay period in milliseconds
-  *
-  * @return None
-  */
- void bstdr_ms_delay(uint32_t period)
- {
-     /**< Delay code comes */
-     vTaskDelay(M2T(period)); // Delay a while to let the device stabilize
- }
+#include "i2cdev.h"
+
+/*!
+ * @brief Communication initialization
+ *
+ * This is optional. Depends on the system you are using
+ *
+ * @return Zero if successful, otherwise an error code
+ */
+bstdr_ret_t bstdr_comm_init(void)
+{
+  /**< Communication initialization --Optional!*/
+  return (bstdr_ret_t)0;
+}
+
+/*!
+ * @brief Generic burst read
+ *
+ * @param [out] dev_id I2C address, SPI chip select or user desired identifier
+ *
+ * @return Zero if successful, otherwise an error code
+ */
+bstdr_ret_t bstdr_burst_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint32_t len)
+{
+  /**< Burst read code comes here */
+  if (i2cdevReadReg8(I2C0_DEV, dev_id, reg_addr, (uint16_t)len, reg_data))
+  {
+    return BSTDR_OK;
+  }
+  else
+  {
+    return BSTDR_E_CON_ERROR;
+  }
+}
+
+/*!
+ * @brief Generic burst write
+ *
+ * @param [out] dev_id I2C address, SPI chip select or user desired identifier
+ *
+ * @return Zero if successful, otherwise an error code
+ */
+bstdr_ret_t bstdr_burst_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint32_t len)
+{
+  /**< Burst write code comes here */
+  if (i2cdevWriteReg8(I2C0_DEV, dev_id, reg_addr, (uint16_t)len, reg_data))
+  {
+    return BSTDR_OK;
+  }
+  else
+  {
+    return BSTDR_E_CON_ERROR;
+  }
+}
+
+/*!
+ * @brief Generic burst read
+ *
+ * @param [in] period Delay period in milliseconds
+ *
+ * @return None
+ */
+void bstdr_us_delay(uint64_t period)
+{
+  uint64_t start = (uint64_t)esp_timer_get_time();
+
+  while ((start + period) > (uint64_t)esp_timer_get_time())
+    ;
+}
+
+void bstdr_ms_delay(uint32_t period)
+{
+  uint64_t start = (uint64_t)esp_timer_get_time();
+  while ((start + period * 1000) > (uint64_t)esp_timer_get_time());
+}

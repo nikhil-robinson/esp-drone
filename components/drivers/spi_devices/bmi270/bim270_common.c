@@ -191,24 +191,24 @@ esp_err_t bmi2_spi_init(void)
 BMI2_INTF_RETURN_TYPE bmi2_spi_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *intf_ptr)
 {
     // 読み込み
-    spiBeginTransaction(SPI_BAUDRATE_2MHZ);
     spi_transaction_t trans;
     esp_err_t ret=0;
-
+    
     memset(&trans, 0, sizeof(trans)); // 構造体をゼロで初期化
     
     _I2CBuffer[0]=reg_addr|0x80;
     trans.tx_buffer =_I2CBuffer;
     trans.rx_buffer =reg_data;
     trans.length = 8+len*8;
+    spiBeginTransaction(SPI_BAUDRATE_2MHZ);
     ret=spi_device_polling_transmit(spidev, &trans);
+    spiEndTransaction();
     uint16_t index = 0;
     while(index<len)
     {
         reg_data[index]=reg_data[index+1];
         index++;
     }
-    spiEndTransaction();
     assert(ret==ESP_OK);
     return ret;
 }
@@ -218,12 +218,11 @@ BMI2_INTF_RETURN_TYPE bmi2_spi_read(uint8_t reg_addr, uint8_t *reg_data, uint32_
  */
 BMI2_INTF_RETURN_TYPE bmi2_spi_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t len, void *intf_ptr)
 {
-    spiBeginTransaction(SPI_BAUDRATE_2MHZ);
     spi_transaction_t trans;
     esp_err_t ret;
     //uint8_t buffer[3];
     uint8_t tmp;
-
+    
     _I2CBuffer[0] = reg_addr&0b01111111;
     memcpy(&_I2CBuffer[1], reg_data, len);
     memset(&trans, 0, sizeof(trans)); // 構造体をゼロで初期化
@@ -232,7 +231,8 @@ BMI2_INTF_RETURN_TYPE bmi2_spi_write(uint8_t reg_addr, const uint8_t *reg_data, 
     trans.rx_buffer = NULL;
     trans.length = 8+len*8;
     trans.rxlength = 0;
-
+    
+    spiBeginTransaction(SPI_BAUDRATE_2MHZ);
     ret = spi_device_polling_transmit(spidev, &trans);
     spiEndTransaction();
     assert(ret==ESP_OK);
@@ -243,11 +243,10 @@ BMI2_INTF_RETURN_TYPE bmi2_spi_write(uint8_t reg_addr, const uint8_t *reg_data, 
 /*!
  * Delay function map to COINES platform
  */
-void bmi2_delay_us(uint32_t period, void *intf_ptr)
-{
-    //coines_delay_usec(period);
-    vTaskDelay(period/ portTICK_PERIOD_MS); // Delay a while to let the device stabilize
-}
+// void bmi2_delay_us(uint32_t period, void *intf_ptr)
+// {
+//     sleepus(period);
+// }
 
 /*!
  *  @brief Function to initialize coines platform

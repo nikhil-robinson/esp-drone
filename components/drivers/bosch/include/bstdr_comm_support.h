@@ -124,5 +124,7 @@
   * @return None
   */
  void bstdr_ms_delay(uint32_t period);
+
+ void bstdr_us_delay(uint64_t period);
  
  #endif /* __BSTDR_COMM_SUPPORT_H__ */

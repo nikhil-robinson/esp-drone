@@ -51,8 +51,10 @@
 #define SENSORS_BMI270_G_PER_LSB_CFG (2.0f * (float)SENSORS_BMI270_ACCEL_CFG) / 65536.0f
 #define SENSORS_BMI270_1G_IN_LSB 65536 / SENSORS_BMI270_ACCEL_CFG / 2
 
-#define SENSORS_ENABLE_RANGE_VL53LX
-#define SENSORS_ENABLE_FLOW_PMW3901
+// #define SENSORS_ENABLE_RANGE_VL53LX
+// #define SENSORS_ENABLE_FLOW_PMW3901
+#define SENSORS_ENABLE_PRESSURE_BMP280
+#define SENSORS_ENABLE_MAG_BMM150
 
 #ifdef SENSORS_ENABLE_RANGE_VL53LX
 static bool isVl53l1xPresent = false;
@@ -220,7 +222,7 @@ static void sensorsDeviceInit(void)
   bmi270Dev.intf = BMI2_SPI_INTF;
   bmi270Dev.read = bmi2_spi_read;
   bmi270Dev.write = bmi2_spi_write;
-  bmi270Dev.delay_us = bmi2_delay_us;
+  bmi270Dev.delay_us = bstdr_us_delay;
   bmi270Dev.dummy_byte = 1;
   bmi270Dev.gyro_en = 1;
   rslt = bmi270_init(&bmi270Dev); // initialize the device
@@ -262,61 +264,7 @@ static void sensorsDeviceInit(void)
     DEBUG_PRINTW("BMI270 SPI connection [FAIL].\n");
   }
 
-#if 0
-  /* BMI055 */
-  bmi055Dev.accel_id = BMI055_ACCEL_I2C_ADDR;
-  bmi055Dev.gyro_id = BMI055_GYRO_I2C_ADDR;
-  bmi055Dev.interface = BMI055_I2C_INTF;
-  bmi055Dev.read = (bmi055_com_fptr_t)bstdr_burst_read;
-  bmi055Dev.write = (bmi055_com_fptr_t)bstdr_burst_write;
-  bmi055Dev.delay_ms = (bmi055_delay_fptr_t)bstdr_ms_delay;
-
-
-  /* BMI055 GYRO */
-  rslt = bmi055_gyro_init(&bmi055Dev); // initialize the device
-  if (rslt == BSTDR_OK)
-  {
-    DEBUG_PRINT("BMI055 Gyro I2C connection [OK].\n");
-    /* set power mode of gyro */
-    bmi055Dev.gyro_cfg.power = BMI055_GYRO_PM_NORMAL;
-    rslt |= bmi055_set_gyro_power_mode(&bmi055Dev);
-    /* set bandwidth and range of gyro */
-    bmi055Dev.gyro_cfg.bw = BMI055_GYRO_BW_116_HZ;
-    bmi055Dev.gyro_cfg.range = SENSORS_BMI055_GYRO_FS_CFG;
-    rslt |= bmi055_set_gyro_sensor_config(CONFIG_ALL, &bmi055Dev);
-
-    bmi055Dev.delay_ms(50);
-    struct bmi055_sensor_data gyr;
-    rslt |= bmi055_get_gyro_data(&gyr, &bmi055Dev);
-  }
-  else
-  {
-    DEBUG_PRINT("BMI055 Gyro I2C connection [FAIL].\n");
-  }
-
-  /* BMI055 ACCEL */
-  rslt = bmi055_accel_init(&bmi055Dev); // initialize the device
-  if (rslt == BSTDR_OK)
-  {
-    DEBUG_PRINT("BMI055 Accel I2C connection [OK].\n");
-    /* set power mode of accel */
-    bmi055Dev.accel_cfg.power = BMI055_ACCEL_PM_NORMAL;
-    rslt |= bmi055_set_accel_power_mode(&bmi055Dev);
-    /* set bandwidth and range of accel */
-    bmi055Dev.accel_cfg.bw = BMI055_ACCEL_BW_125_HZ;
-    bmi055Dev.accel_cfg.range = SENSORS_BMI055_ACCEL_FS_CFG;
-    rslt |= bmi055_set_accel_sensor_config(CONFIG_ALL, &bmi055Dev);
-
-    bmi055Dev.delay_ms(10);
-    struct bmi055_sensor_data acc;
-    rslt |= bmi055_get_accel_data(&acc, &bmi055Dev);
-  }
-  else
-  {
-    DEBUG_PRINT("BMI055 Accel I2C connection [FAIL].\n");
-  }
-#endif
-
+#ifdef SENSORS_ENABLE_MAG_BMM150
   /* BMM150 */
   rslt = BSTDR_E_GEN_ERROR;
 
@@ -339,7 +287,9 @@ static void sensorsDeviceInit(void)
     DEBUG_PRINTI("BMM150 I2C connection [OK].\n");
     isMagnetometerPresent = true;
   }
+#endif
 
+#ifdef SENSORS_ENABLE_PRESSURE_BMP280
   /* BMP280 */
   rslt = BSTDR_E_GEN_ERROR;
 
@@ -363,6 +313,7 @@ static void sensorsDeviceInit(void)
     bmp280_read_pressure_temperature(&v_pres_u32, &v_temp_s32);
     baroMeasDelayMin = SENSORS_DELAY_BARO;
   }
+#endif
 #ifdef SENSORS_ENABLE_RANGE_VL53LX
     zRanger2Init();
 

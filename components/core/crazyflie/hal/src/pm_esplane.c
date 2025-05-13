@@ -340,7 +340,7 @@ void pmTask(void *param)
   extBatteryCurrent = pmMeasureExtBatteryCurrent();
   pmSetBatteryVoltage(extBatteryVoltage);
   batteryLevel = pmBatteryChargeFromVoltage(pmGetBatteryVoltage()) * 10;
-  DEBUG_PRINTI("batteryLevel=%u extBatteryVoltageMV=%u \n", batteryLevel, extBatteryVoltageMV);
+  // DEBUG_PRINTI("batteryLevel=%u extBatteryVoltageMV=%u \n", batteryLevel, extBatteryVoltageMV);
 #ifdef DEBUG_EP2
   DEBUG_PRINTD("batteryLevel=%u extBatteryVoltageMV=%u \n", batteryLevel, extBatteryVoltageMV);
 #endif

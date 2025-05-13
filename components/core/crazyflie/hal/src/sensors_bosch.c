@@ -272,6 +272,18 @@ static void sensorsDeviceInit(void)
     config[ACCEL].cfg.acc.filter_perf = BMI2_PERF_OPT_MODE;
 
     rslt |= bmi2_set_sensor_config(config, 2, &bmi270Dev);
+
+    uint8_t sensor_list[2] = {BMI2_ACCEL, BMI2_GYRO};
+    rslt |= bmi2_sensor_enable(sensor_list, 2, &bmi270Dev);
+
+    if (rslt == BSTDR_OK)
+    {
+      DEBUG_PRINTI("BMI270 SPI sensor enable [OK].\n");
+    }
+    else
+    {
+      DEBUG_PRINTW("BMI270 SPI sensor enable [FAIL].\n");
+    }
     struct bmi2_sens_data imu_data;
     rslt |= bmi2_get_sensor_data(&imu_data, &bmi270Dev);
   }
@@ -393,18 +405,18 @@ static void sensorsGyroGet(Axis3i16 *dataOut)
 {
   struct bmi2_sens_data imu_data;
   bmi2_get_sensor_data(&imu_data, pBmi270);
-  dataOut->x = imu_data.gyr.x;
-  dataOut->y = imu_data.gyr.y;
-  dataOut->z = -imu_data.gyr.z;
+  dataOut->x = imu_data.gyr.y;
+  dataOut->y = -imu_data.gyr.x;
+  dataOut->z = imu_data.gyr.z;
 }
 
 static void sensorsAccelGet(Axis3i16 *dataOut)
 {
   struct bmi2_sens_data imu_data;
   bmi2_get_sensor_data(&imu_data, pBmi270);
-  dataOut->x = imu_data.acc.x;
-  dataOut->y = imu_data.acc.y;
-  dataOut->z = -imu_data.acc.z;
+  dataOut->x = imu_data.acc.y;
+  dataOut->y = -imu_data.acc.x;
+  dataOut->z = imu_data.acc.z;
 }
 
 static void sensorsTask(void *param)
@@ -417,8 +429,16 @@ static void sensorsTask(void *param)
   {
     vTaskDelayUntil(&lastWakeTime, F2T(SENSORS_READ_RATE_HZ));
     sensorData.interruptTimestamp = (uint64_t)esp_timer_get_time();
-    sensorsGyroGet(&gyroRaw);
-    sensorsAccelGet(&accelRaw);
+    // sensorsGyroGet(&gyroRaw);
+    // sensorsAccelGet(&accelRaw);
+    struct bmi2_sens_data imu_data;
+    bmi2_get_sensor_data(&imu_data, pBmi270);
+    gyroRaw.x = imu_data.gyr.y;
+    gyroRaw.y = -imu_data.gyr.x;
+    gyroRaw.z = imu_data.gyr.z;
+    accelRaw.x = imu_data.acc.y;
+    accelRaw.y = -imu_data.acc.x;
+    accelRaw.z = imu_data.acc.z;
 #ifdef GYRO_BIAS_LIGHT_WEIGHT
     gyroBiasFound = processGyroBiasNoBuffer(gyroRaw.x, gyroRaw.y, gyroRaw.z, &gyroBias);
 #else

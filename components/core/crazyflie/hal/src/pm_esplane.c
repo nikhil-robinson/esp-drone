@@ -47,6 +47,7 @@
 #include "static_mem.h"
 #include "ina3221.h"
 
+
 typedef struct _PmSyslinkInfo
 {
   union
@@ -112,25 +113,16 @@ const static float bat671723HS25C[10] =
 
 STATIC_MEM_TASK_ALLOC(pmTask, PM_TASK_STACKSIZE);
 
-ina3221_config_t ina3221_config;
-
 void pmInit(void)
 {
   if(isInit) {
     return;
   }
     i2cdevInit(I2C0_DEV);
-    // pmEnableExtBatteryVoltMeasuring(CONFIG_ADC1_PIN, 2); // ADC1 PIN is fixed to ADC channel
-    ina3221_config = ina3221_init(I2C0_DEV, 21, 22, 100000, INA3221_ADDR40_GND);
-    
-    // Set shunt resistors
-    ina3221_config = ina3221_set_shunt_res(ina3221_config, 10, 10, 10);
-    
-    // Enable continuous mode
-    ina3221_set_mode_continuous(ina3221_config);
-    
-    // Enable channel 1
-    ina3221_set_channel_enable(ina3221_config, INA3221_CH1);
+    pmEnableExtBatteryVoltMeasuring(250, 2); // ADC1 PIN is fixed to ADC channel
+    // pmEnableExtBatteryCurrMeasuring(250,)
+    INA3221_begin(I2C0_DEV, INA3221_ADDR40_GND);
+    INA3221_reset();
 
     pmSyslinkInfo.pgood = false;
     pmSyslinkInfo.chg = false;
@@ -272,7 +264,7 @@ float pmMeasureExtBatteryCurrent(void)
 
   if (isExtBatCurrDeckPinSet)
   {
-    current = ina3221_get_current(ina3221_config, INA3221_CH1);
+    current = INA3221_getCurrent(INA3221_CH2);
   }
   else
   {
@@ -295,7 +287,7 @@ float pmMeasureExtBatteryVoltage(void)
 
   if (isExtBatVoltDeckPinSet)
   {
-    voltage = ina3221_get_voltage(ina3221_config, INA3221_CH1);;
+    voltage = INA3221_getVoltage(INA3221_CH2);
   }
   else
   {
@@ -348,6 +340,7 @@ void pmTask(void *param)
   extBatteryCurrent = pmMeasureExtBatteryCurrent();
   pmSetBatteryVoltage(extBatteryVoltage);
   batteryLevel = pmBatteryChargeFromVoltage(pmGetBatteryVoltage()) * 10;
+  DEBUG_PRINTI("batteryLevel=%u extBatteryVoltageMV=%u \n", batteryLevel, extBatteryVoltageMV);
 #ifdef DEBUG_EP2
   DEBUG_PRINTD("batteryLevel=%u extBatteryVoltageMV=%u \n", batteryLevel, extBatteryVoltageMV);
 #endif
